@@ -19,4 +19,5 @@ public class UserController {
     public List<User> retrieveAllBooks() {
         return userRepository.findAll();
     }
+
 }
