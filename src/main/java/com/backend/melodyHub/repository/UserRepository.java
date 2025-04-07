@@ -7,10 +7,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.validation.annotation.Validated;
 
 import java.util.Optional;
-
+@Validated
 public interface UserRepository extends JpaRepository<User, Integer> {
-    @Validated
     Optional<User> findByLogin(String login);
-    @Validated
     Optional<User> findByEmail(@NotBlank(message = "Email cannot be empty") @Email(message = "Invalid email format") String email);
 }
