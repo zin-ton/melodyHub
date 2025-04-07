@@ -44,7 +44,7 @@ public class AuthController {
                 }
                 return ResponseEntity.badRequest().body("username or password is not correct");
             } catch (Exception e) {
-                return ResponseEntity.badRequest().body(e.getMessage());
+                return ResponseEntity.badRequest().body("An error occurred. Please try again later.");
             }
         }
 
@@ -69,7 +69,7 @@ public class AuthController {
                 }
             }
             catch (Exception e) {
-                return ResponseEntity.badRequest().body(e.getMessage());
+                return ResponseEntity.badRequest().body("An error occurred. Please try again later.");
             }
         }
 
