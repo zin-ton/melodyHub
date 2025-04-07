@@ -48,7 +48,9 @@ public class AuthController {
     public ResponseEntity<?> register(@Valid @RequestBody User user) {
         try{
             Optional<User> userFromDb = userRepository.findByLogin(user.getLogin());
+            Optional<User> verifyEmail = userRepository.findByEmail(user.getEmail());
             if (!userFromDb.isEmpty()) { return ResponseEntity.badRequest().body("user already exists!"); }
+            else if(verifyEmail.isPresent()) { return ResponseEntity.badRequest().body("email already exists!"); }
             else{
                 user.setPassword(PasswordHasher.hashPassword(user.getPassword()));
                 userRepository.save(user);
@@ -58,7 +60,5 @@ public class AuthController {
         catch (Exception e) {
             throw new RuntimeException(e);
         }
-
     }
-
 }
