@@ -47,7 +47,7 @@ public class AuthController {
                 return ResponseEntity.badRequest().body("username or password is not correct");
             } catch (Exception e) {
                 logger.error("An error occurred during login", e);
-                return ResponseEntity.badRequest().body("An error occurred. Please try again later.");
+                return ResponseEntity.internalServerError().body("An error occurred during login");
             }
         }
 
@@ -73,7 +73,7 @@ public class AuthController {
             }
             catch (Exception e) {
                 logger.error("An error occurred during registration", e);
-                return ResponseEntity.badRequest().body("An error occurred. Please try again later.");
+                return ResponseEntity.internalServerError().body("An error occurred. Please try again later.");
             }
         }
 
