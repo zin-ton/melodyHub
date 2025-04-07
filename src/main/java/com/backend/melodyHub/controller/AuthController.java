@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -30,35 +31,47 @@ public class AuthController {
 
     @PostMapping("login")
     @Operation()
-    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest loginRequest) {
-        try{
-            Optional<User> userFromDb = userRepository.findByLogin(loginRequest.getLogin());
-            if (userFromDb.isEmpty()) { return ResponseEntity.badRequest().body("username or password is not correct");}
-            if(PasswordHasher.checkPassword(loginRequest.getPassword(), userFromDb.get().getPassword())) {
-                return ResponseEntity.ok(jwtUtil.generateToken(userFromDb.get()));
-            }
-            return ResponseEntity.badRequest().body("username or password is not correct");
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest loginRequest, BindingResult bindingResult) {
+        if(bindingResult.hasErrors()) {
+            return ResponseEntity.badRequest().body(bindingResult.getAllErrors());
         }
+        else{
+            try{
+                Optional<User> userFromDb = userRepository.findByLogin(loginRequest.getLogin());
+                if (userFromDb.isEmpty()) { return ResponseEntity.badRequest().body("username or password is not correct");}
+                if(PasswordHasher.checkPassword(loginRequest.getPassword(), userFromDb.get().getPassword())) {
+                    return ResponseEntity.ok(jwtUtil.generateToken(userFromDb.get()));
+                }
+                return ResponseEntity.badRequest().body("username or password is not correct");
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+
     }
 
     @PostMapping("register")
     @Operation()
-    public ResponseEntity<?> register(@Valid @RequestBody User user) {
-        try{
-            Optional<User> userFromDb = userRepository.findByLogin(user.getLogin());
-            Optional<User> verifyEmail = userRepository.findByEmail(user.getEmail());
-            if (!userFromDb.isEmpty()) { return ResponseEntity.badRequest().body("user already exists!"); }
-            else if(verifyEmail.isPresent()) { return ResponseEntity.badRequest().body("email already exists!"); }
-            else{
-                user.setPassword(PasswordHasher.hashPassword(user.getPassword()));
-                userRepository.save(user);
-                return ResponseEntity.ok().build();
+    public ResponseEntity<?> register(@Valid @RequestBody User user, BindingResult bindingResult) {
+        if(bindingResult.hasErrors()){
+            return ResponseEntity.badRequest().body(bindingResult.getAllErrors());
+        }
+        else{
+            try{
+                Optional<User> userFromDb = userRepository.findByLogin(user.getLogin());
+                Optional<User> verifyEmail = userRepository.findByEmail(user.getEmail());
+                if (userFromDb.isPresent()) { return ResponseEntity.badRequest().body("user already exists!"); }
+                else if(verifyEmail.isPresent()) { return ResponseEntity.badRequest().body("email already exists!"); }
+                else{
+                    user.setPassword(PasswordHasher.hashPassword(user.getPassword()));
+                    userRepository.save(user);
+                    return ResponseEntity.ok().build();
+                }
+            }
+            catch (Exception e) {
+                throw new RuntimeException(e);
             }
         }
-        catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+
     }
 }
