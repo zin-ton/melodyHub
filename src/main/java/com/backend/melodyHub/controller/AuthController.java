@@ -4,6 +4,7 @@ import com.backend.melodyHub.component.JwtUtil;
 import com.backend.melodyHub.component.PasswordHasher;
 import com.backend.melodyHub.model.LoginRequest;
 import com.backend.melodyHub.model.User;
+import com.backend.melodyHub.model.UserDTO;
 import com.backend.melodyHub.repository.UserRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -55,7 +56,7 @@ public class AuthController {
 
     @PostMapping("register")
     @Operation()
-    public ResponseEntity<?> register(@Valid @RequestBody User user, BindingResult bindingResult) {
+    public ResponseEntity<?> register(@Valid @RequestBody UserDTO user, BindingResult bindingResult) {
         if(bindingResult.hasErrors()){
             return ResponseEntity.badRequest().body(bindingResult.getAllErrors());
         }
@@ -66,8 +67,13 @@ public class AuthController {
                 if (userFromDb.isPresent()) { return ResponseEntity.badRequest().body("user already exists!"); }
                 else if(verifyEmail.isPresent()) { return ResponseEntity.badRequest().body("email already exists!"); }
                 else{
-                    user.setPassword(PasswordHasher.hashPassword(user.getPassword()));
-                    userRepository.save(user);
+                    User newUser = new User();
+                    newUser.setPassword(PasswordHasher.hashPassword(user.getPassword()));
+                    newUser.setEmail(user.getEmail());
+                    newUser.setLogin(user.getLogin());
+                    newUser.setFirstName(user.getFirstName());
+                    newUser.setLastName(user.getLastName());
+                    userRepository.save(newUser);
                     return ResponseEntity.ok().build();
                 }
             }

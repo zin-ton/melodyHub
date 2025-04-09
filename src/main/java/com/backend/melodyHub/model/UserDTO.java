@@ -1,16 +1,10 @@
 package com.backend.melodyHub.model;
 
-import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 
-@Entity
-@Table(name = "\"user\"")
-public class User {
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Id
-    private Integer id;
+public class UserDTO {
     @NotBlank(message = "Email cannot be empty")
     @Email(message = "Invalid email format")
     private String email;
@@ -20,6 +14,11 @@ public class User {
     @NotBlank(message = "Lastname cannot be empty")
     @Pattern(regexp = "^[a-zA-Z]+$", message = "Only letters are allowed")
     private String lastName;
+    @NotBlank(message = "Password cannot be empty")
+    @Pattern(
+            regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@#$%^&+=!])[A-Za-z\\d@#$%^&+=!]{8,20}$",
+            message = "Password must be 8-20 characters long and include at least one uppercase letter, one lowercase letter, one digit, and one special character (@#$%^&+=!)"
+    )
     private String password;
     @NotBlank(message = "Username cannot be empty")
     @Pattern(
@@ -28,15 +27,7 @@ public class User {
     )
     private String login;
 
-    public User() {
-    }
-
-    public Integer getId() {
-        return id;
-    }
-
-    public void setId(Integer id) {
-        this.id = id;
+    public UserDTO() {
     }
 
     public String getEmail() {
@@ -78,5 +69,4 @@ public class User {
     public void setLogin(String login) {
         this.login = login;
     }
-
 }
