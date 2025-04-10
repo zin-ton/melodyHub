@@ -3,9 +3,12 @@ package com.backend.melodyHub.dto;
 import com.backend.melodyHub.model.User;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 
 public class UserNoPasswordDTO {
+    @NotNull
+    private Integer id;
     @NotBlank(message = "Email cannot be empty")
     @Email(message = "Invalid email format")
     private String email;
@@ -31,7 +34,16 @@ public class UserNoPasswordDTO {
         userNoPasswordDTO.setFirstName(user.getFirstName());
         userNoPasswordDTO.setLastName(user.getLastName());
         userNoPasswordDTO.setLogin(user.getLogin());
+        userNoPasswordDTO.setId(user.getId());
         return userNoPasswordDTO;
+    }
+
+    public Integer getId() {
+        return id;
+    }
+
+    public void setId(Integer id) {
+        this.id = id;
     }
 
     public String getEmail() {
