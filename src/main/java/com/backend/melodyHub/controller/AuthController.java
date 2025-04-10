@@ -2,11 +2,11 @@ package com.backend.melodyHub.controller;
 
 import com.backend.melodyHub.component.JwtUtil;
 import com.backend.melodyHub.component.PasswordHasher;
-import com.backend.melodyHub.model.LoginRequest;
+import com.backend.melodyHub.configs.GlobalVariables;
+import com.backend.melodyHub.dto.LoginDTO;
 import com.backend.melodyHub.model.User;
-import com.backend.melodyHub.model.UserDTO;
+import com.backend.melodyHub.dto.UserDTO;
 import com.backend.melodyHub.repository.UserRepository;
-import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Optional;
-@CrossOrigin
+@CrossOrigin(origins = GlobalVariables.FRONTREND)
 @RestController
 @Tag(name = "Auth Controller")
 public class AuthController {
@@ -33,8 +33,7 @@ public class AuthController {
     }
 
     @PostMapping("login")
-    @Operation()
-    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest loginRequest, BindingResult bindingResult) {
+    public ResponseEntity<?> login(@Valid @RequestBody LoginDTO loginRequest, BindingResult bindingResult) {
         if(bindingResult.hasErrors()) {
             return ResponseEntity.badRequest().body(bindingResult.getAllErrors());
         }
@@ -55,7 +54,6 @@ public class AuthController {
     }
 
     @PostMapping("register")
-    @Operation()
     public ResponseEntity<?> register(@Valid @RequestBody UserDTO user, BindingResult bindingResult) {
         if(bindingResult.hasErrors()){
             return ResponseEntity.badRequest().body(bindingResult.getAllErrors());

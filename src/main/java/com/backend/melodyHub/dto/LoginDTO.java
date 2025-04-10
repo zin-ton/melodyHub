@@ -1,9 +1,9 @@
-package com.backend.melodyHub.model;
+package com.backend.melodyHub.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 
-public class LoginRequest {
+public class LoginDTO {
     @NotBlank(message = "Username cannot be empty")
     @Pattern(
             regexp = "^[a-zA-Z][a-zA-Z0-9_]{2,19}$",
