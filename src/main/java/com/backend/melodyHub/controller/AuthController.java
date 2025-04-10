@@ -2,7 +2,6 @@ package com.backend.melodyHub.controller;
 
 import com.backend.melodyHub.component.JwtUtil;
 import com.backend.melodyHub.component.PasswordHasher;
-import com.backend.melodyHub.configs.GlobalVariables;
 import com.backend.melodyHub.dto.LoginDTO;
 import com.backend.melodyHub.model.User;
 import com.backend.melodyHub.dto.UserDTO;
@@ -13,13 +12,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Optional;
-@CrossOrigin(origins = GlobalVariables.FRONTREND)
+
 @RestController
 @Tag(name = "Auth Controller")
 public class AuthController {
