@@ -1,10 +1,11 @@
 package com.backend.melodyHub.dto;
 
+import com.backend.melodyHub.model.User;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 
-public class UserDTO {
+public class UserNoPasswordDTO {
     @NotBlank(message = "Email cannot be empty")
     @Email(message = "Invalid email format")
     private String email;
@@ -14,12 +15,6 @@ public class UserDTO {
     @NotBlank(message = "Lastname cannot be empty")
     @Pattern(regexp = "^[a-zA-Z]+$", message = "Only letters are allowed")
     private String lastName;
-    @NotBlank(message = "Password cannot be empty")
-    @Pattern(
-            regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@#$%^&+=!])[A-Za-z\\d@#$%^&+=!]{8,20}$",
-            message = "Password must be 8-20 characters long and include at least one uppercase letter, one lowercase letter, one digit, and one special character (@#$%^&+=!)"
-    )
-    private String password;
     @NotBlank(message = "Username cannot be empty")
     @Pattern(
             regexp = "^[a-zA-Z][a-zA-Z0-9_]{2,19}$",
@@ -27,7 +22,16 @@ public class UserDTO {
     )
     private String login;
 
-    public UserDTO() {
+    public UserNoPasswordDTO() {
+    }
+
+    public static UserNoPasswordDTO fromUser(User user) {
+        UserNoPasswordDTO userNoPasswordDTO = new UserNoPasswordDTO();
+        userNoPasswordDTO.setEmail(user.getEmail());
+        userNoPasswordDTO.setFirstName(user.getFirstName());
+        userNoPasswordDTO.setLastName(user.getLastName());
+        userNoPasswordDTO.setLogin(user.getLogin());
+        return userNoPasswordDTO;
     }
 
     public String getEmail() {
@@ -54,14 +58,6 @@ public class UserDTO {
         this.lastName = last_name;
     }
 
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
     public String getLogin() {
         return login;
     }
@@ -69,5 +65,4 @@ public class UserDTO {
     public void setLogin(String login) {
         this.login = login;
     }
-
 }
