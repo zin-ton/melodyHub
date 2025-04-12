@@ -16,7 +16,8 @@ public class JwtUtil {
     private final long EXPIRATION_TIME = 1000 * 60 * 60;
     private final Key key;
     Dotenv dotenv = Dotenv.load();
-    public JwtUtil(){
+
+    public JwtUtil() {
         SECRET = Optional.ofNullable(dotenv.get("256BIT_SECRET"))
                 .orElseThrow(() -> new IllegalStateException("256BIT_SECRET environment variable is not set"));
         key = Keys.hmacShaKeyFor(SECRET.getBytes());
@@ -47,10 +48,26 @@ public class JwtUtil {
                     .build()
                     .parseClaimsJws(token);
             return true;
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             return false;
         }
+    }
+
+    public TokenValidationResult validateTokenFull(String token) {
+        if (token == null || token.isBlank()) {
+            return TokenValidationResult.error("Token cannot be empty");
+        }
+
+        String tokenRegex = "^[A-Za-z0-9-_]+\\.[A-Za-z0-9-_]+\\.[A-Za-z0-9-_]+$";
+        if (!token.matches(tokenRegex)) {
+            return TokenValidationResult.error("Invalid JWT token format");
+        }
+
+        if (!validateToken(token)) {
+            return TokenValidationResult.error("Invalid token");
+        }
+
+        return TokenValidationResult.success();
     }
 
 }
