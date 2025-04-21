@@ -2,9 +2,6 @@ package com.backend.melodyHub.controller;
 
 import com.backend.melodyHub.component.JwtUtil;
 import com.backend.melodyHub.component.TokenValidationResult;
-import com.backend.melodyHub.dto.AddPostDTO;
-import com.backend.melodyHub.dto.DeletePostDTO;
-import com.backend.melodyHub.dto.EditPostDTO;
 import com.backend.melodyHub.dto.PostDTO;
 import com.backend.melodyHub.model.Category;
 import com.backend.melodyHub.model.Post;
@@ -15,10 +12,10 @@ import com.backend.melodyHub.repository.UserRepository;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
 import java.util.*;
 
 @RestController
@@ -37,17 +34,19 @@ public class PostController {
     }
 
     @DeleteMapping("/deletePost")
-    public ResponseEntity<?> deletePost(@RequestBody DeletePostDTO deletePostDTO) {
-        TokenValidationResult result = jwtUtil.validateTokenFull(deletePostDTO.getToken());
+    public ResponseEntity<?> deletePost(@RequestHeader String token, @RequestBody int postId) {
+        TokenValidationResult result = jwtUtil.validateTokenFull(token);
         if (!result.isValid())
             return ResponseEntity.badRequest().body(result.getErrorMessage().orElse("Invalid token"));
-        String token = deletePostDTO.getToken();
         String username = jwtUtil.extractUsername(token);
         try {
             Optional<User> user = userRepository.findByLogin(username);
             if (user.isPresent()) {
-                Optional<Post> post = postRepository.findById(deletePostDTO.getPostId());
+                Optional<Post> post = postRepository.findById(postId);
                 if (post.isPresent()) {
+                    if(!Objects.equals(post.get().getUser().getId(), user.get().getId())) {
+                        return ResponseEntity.badRequest().body("You are not the owner of this post");
+                    }
                     postRepository.delete(post.get());
                     return ResponseEntity.ok("Post deleted successfully");
                 } else {
@@ -62,29 +61,31 @@ public class PostController {
         }
     }
 
-    @GetMapping("/postWithFilter")
-    public ResponseEntity<?> getVideoWithFilter(@RequestHeader String token, @RequestParam String filter) {
+    @GetMapping("/postsByCategory")
+    public ResponseEntity<?> getPostByCategory(@RequestHeader String token, @RequestParam List<Integer> filter) {
         TokenValidationResult result = jwtUtil.validateTokenFull(token);
         if (!result.isValid())
             return ResponseEntity.badRequest().body(result.getErrorMessage().orElse("Invalid token"));
         if(filter == null){
-            return ResponseEntity.badRequest().body(result.getErrorMessage().orElse("Invalid filter"));
+            List<PostDTO> returnPosts = new ArrayList<>();
+            List<Post> posts = postRepository.findAll();
+            posts.forEach(post -> returnPosts.add(PostDTO.fromPost(post)));
+            return ResponseEntity.ok(returnPosts);
         }
         try{
-            List<Post> posts = postRepository.findPostsByCategoryName(filter);
+            Set<Category> categories = new HashSet<>();
+            for(Integer categoryId : filter){
+                if(!categoryRepository.existsById(categoryId)){
+                    return ResponseEntity.badRequest().body("Category with id " + categoryId + " does not exist");
+                }
+                categories.add(categoryRepository.findById(categoryId).get());
+            }
+            List<Post> posts = postRepository.findPostsByCategories(categories);
             List<PostDTO> returnPosts = new ArrayList<>();
-            posts.forEach(post -> {
-                List<String> categories = new ArrayList<>();
-                post.getCategories().forEach(category -> categories.add(category.getName()));
-                returnPosts.add(new PostDTO(post.getId(),
-                        post.getSourceUrl(),
-                        post.getDescription(),
-                        post.getName() ,
-                        post.getLeadsheet(),
-                        post.getDateTime(),
-                        categories,
-                        post.getUser().getLogin()));
-            });
+            posts.forEach(post -> returnPosts.add(PostDTO.fromPost(post)));
+            if(returnPosts.isEmpty()){
+                return ResponseEntity.notFound().build();
+            }
             return ResponseEntity.ok(returnPosts);
         }
         catch (Exception e){
@@ -94,22 +95,17 @@ public class PostController {
     }
 
     @GetMapping("/getPosts")
-    public ResponseEntity<?> getPosts() {
+    public ResponseEntity<?> getPosts(@RequestHeader String token) {
+        TokenValidationResult result = jwtUtil.validateTokenFull(token);
+        if (!result.isValid())
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You do not have permission to access this resource");
         try{
             List<Post> posts = postRepository.findAll();
             List<PostDTO> returnPosts = new ArrayList<>();
-            posts.forEach(post -> {
-                List<String> categories = new ArrayList<>();
-                post.getCategories().forEach(category -> categories.add(category.getName()));
-                returnPosts.add(new PostDTO(post.getId(),
-                        post.getSourceUrl(),
-                        post.getDescription(),
-                        post.getName() ,
-                        post.getLeadsheet(),
-                        post.getDateTime(),
-                        categories,
-                        post.getUser().getLogin()));
-            });
+            posts.forEach(post -> returnPosts.add(PostDTO.fromPost(post)));
+            if(returnPosts.isEmpty()){
+                return ResponseEntity.notFound().build();
+            }
             return ResponseEntity.ok(returnPosts);
         }
         catch (Exception e){
@@ -119,39 +115,23 @@ public class PostController {
     }
 
     @PostMapping("/addPost")
-    public ResponseEntity<?> addPost(@RequestBody AddPostDTO post) {
-        TokenValidationResult result = jwtUtil.validateTokenFull(post.getToken());
+    public ResponseEntity<?> addPost(@RequestBody PostDTO post, @RequestHeader String token) {
+        TokenValidationResult result = jwtUtil.validateTokenFull(token);
         if (!result.isValid())
             return ResponseEntity.badRequest().body(result.getErrorMessage().orElse("Invalid token"));
-        String token = post.getToken();
         String username = jwtUtil.extractUsername(token);
         try {
             Optional<User> user = userRepository.findByLogin(username);
             if (user.isPresent()) {
-                Post newPost = new Post();
-                newPost.setSourceUrl(post.getPostDTO().getSourceUrl());
-                newPost.setDescription(post.getPostDTO().getDescription());
-                newPost.setName(post.getPostDTO().getName());
-                newPost.setLeadsheet(post.getPostDTO().getLeadsheet());
-                newPost.setDateTime(post.getPostDTO().getDateTime() != null
-                        ? post.getPostDTO().getDateTime()
-                        : LocalDateTime.now());
-
+                Post newPost;
                 Set<Category> categories = new HashSet<>();
-                for (String categoryName : post.getPostDTO().getCategories()) {
-                    Category category = categoryRepository.findByName(categoryName)
-                            .orElseGet(() -> {
-                                Category newCategory = new Category();
-                                newCategory.setName(categoryName);
-                                return newCategory;
-                            });
-                    if (category.getId() == null) {
-                        categoryRepository.save(category);
+                for(Integer categoryId : post.getCategories()){
+                    if(!categoryRepository.existsById(categoryId)){
+                        return ResponseEntity.badRequest().body("Category with id " + categoryId + " does not exist");
                     }
-                    categories.add(category);
+                    categories.add(categoryRepository.findById(categoryId).get());
                 }
-                newPost.setCategories(categories);
-                newPost.setUser(user.get());
+                newPost = post.toPost(user.get(), categories);
                 postRepository.save(newPost);
                 return ResponseEntity.ok("Post added successfully");
             } else {
@@ -164,38 +144,30 @@ public class PostController {
     }
 
     @PostMapping("/editPost")
-    public ResponseEntity<?> editPost(@RequestBody EditPostDTO post) {
-        TokenValidationResult result = jwtUtil.validateTokenFull(post.getToken());
+    public ResponseEntity<?> editPost(@RequestBody PostDTO post, @RequestHeader String token) {
+        TokenValidationResult result = jwtUtil.validateTokenFull(token);
         if (!result.isValid())
             return ResponseEntity.badRequest().body(result.getErrorMessage().orElse("Invalid token"));
-        String token = post.getToken();
         String username = jwtUtil.extractUsername(token);
         try {
             Optional<User> user = userRepository.findByLogin(username);
             if (user.isPresent()) {
-                Optional<Post> postFromDb = postRepository.findById(post.getPostDTO().getId());
+                Optional<Post> postFromDb = postRepository.findById(post.getId());
                 if (postFromDb.isPresent()) {
                     Post postToEdit = postFromDb.get();
-                    postToEdit.setSourceUrl(post.getPostDTO().getSourceUrl());
-                    postToEdit.setDescription(post.getPostDTO().getDescription());
-                    postToEdit.setName(post.getPostDTO().getName());
-                    postToEdit.setLeadsheet(post.getPostDTO().getLeadsheet());
-                    postToEdit.setDateTime(post.getPostDTO().getDateTime() != null
-                            ? post.getPostDTO().getDateTime()
-                            : LocalDateTime.now());
-
+                    if(!Objects.equals(postToEdit.getUser().getId(), user.get().getId())) {
+                        return ResponseEntity.badRequest().body("You are not the owner of this post");
+                    }
+                    postToEdit.setSourceUrl(post.getSourceUrl());
+                    postToEdit.setDescription(post.getDescription());
+                    postToEdit.setName(post.getName());
+                    postToEdit.setLeadsheet(post.getLeadsheet());
                     Set<Category> categories = new HashSet<>();
-                    for (String categoryName : post.getPostDTO().getCategories()) {
-                        Category category = categoryRepository.findByName(categoryName)
-                                .orElseGet(() -> {
-                                    Category newCategory = new Category();
-                                    newCategory.setName(categoryName);
-                                    return newCategory;
-                                });
-                        if (category.getId() == null) {
-                            categoryRepository.save(category);
+                    for(Integer categoryId : post.getCategories()){
+                        if(!categoryRepository.existsById(categoryId)){
+                            return ResponseEntity.badRequest().body("Category with id " + categoryId + " does not exist");
                         }
-                        categories.add(category);
+                        categories.add(categoryRepository.findById(categoryId).get());
                     }
                     postToEdit.setCategories(categories);
                     postRepository.save(postToEdit);
@@ -211,6 +183,4 @@ public class PostController {
             return ResponseEntity.internalServerError().body("An error occurred while trying to edit the posts");
         }
     }
-
-
 }

@@ -1,9 +1,11 @@
 package com.backend.melodyHub.dto;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
+import com.backend.melodyHub.model.Category;
+import com.backend.melodyHub.model.Post;
+import com.backend.melodyHub.model.User;
 
-import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 
 public class PostDTO {
     private Integer id;
@@ -11,22 +13,37 @@ public class PostDTO {
     private String description;
     private String name;
     private byte[] leadsheet;
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
-    private LocalDateTime dateTime;
-    private List<String> categories;
-    private String userName;
+    private List<Integer> categories;
 
-    public PostDTO(Integer id, String sourceUrl, String description, String name, byte[] leadsheet, LocalDateTime dateTime, List<String> categories, String userName) {
+    public PostDTO(Integer id, String sourceUrl, String description, String name, byte[] leadsheet, List<Integer> categories) {
         this.id = id;
         this.sourceUrl = sourceUrl;
         this.description = description;
         this.name = name;
         this.leadsheet = leadsheet;
-        this.dateTime = dateTime;
         this.categories = categories;
-        this.userName = userName;
+    }
+    public static PostDTO fromPost(Post post) {
+        return new PostDTO(
+                post.getId(),
+                post.getSourceUrl(),
+                post.getDescription(),
+                post.getName(),
+                post.getLeadsheet(),
+                post.getCategories().stream().map(Category::getId).toList()
+        );
     }
 
+    public Post toPost(User user, Set<Category> categories) {
+        Post post = new Post();
+        post.setSourceUrl(this.sourceUrl);
+        post.setDescription(this.description);
+        post.setName(this.name);
+        post.setLeadsheet(this.leadsheet);
+        post.setUser(user);
+        post.setCategories(categories);
+        return post;
+    }
     public Integer getId() {
         return id;
     }
@@ -67,27 +84,13 @@ public class PostDTO {
         this.leadsheet = leadsheet;
     }
 
-    public LocalDateTime getDateTime() {
-        return dateTime;
-    }
 
-    public void setDateTime(LocalDateTime dateTime) {
-        this.dateTime = dateTime;
-    }
-
-    public List<String> getCategories() {
+    public List<Integer> getCategories() {
         return categories;
     }
 
-    public void setCategories(List<String> categories) {
+    public void setCategories(List<Integer> categories) {
         this.categories = categories;
     }
 
-    public String getUserName() {
-        return userName;
-    }
-
-    public void setUserName(String userName) {
-        this.userName = userName;
-    }
 }
