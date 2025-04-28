@@ -66,7 +66,7 @@ public class PostController {
         TokenValidationResult result = jwtUtil.validateTokenFull(token);
         if (!result.isValid())
             return ResponseEntity.badRequest().body(result.getErrorMessage().orElse("Invalid token"));
-        if(filter == null || filter.isEmpty()){
+        if(filter.isEmpty()){
             List<PostDTO> returnPosts = new ArrayList<>();
             List<Post> posts = postRepository.findAll();
             posts.forEach(post -> returnPosts.add(PostDTO.fromPost(post)));
