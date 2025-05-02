@@ -12,10 +12,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Optional;
 
@@ -36,7 +33,7 @@ public class LikeController {
     }
 
     @PostMapping("/likePost")
-    public ResponseEntity<String> likePost(@RequestHeader String token, @RequestParam Integer postId) {
+    public ResponseEntity<?> likePost(@RequestHeader String token, @RequestParam Integer postId) {
         TokenValidationResult result = jwtUtil.validateTokenFull(token);
         if (!result.isValid())
             return ResponseEntity.badRequest().body(result.getErrorMessage().orElse("Invalid token"));
@@ -60,4 +57,28 @@ public class LikeController {
         }
         return ResponseEntity.ok().build();
     }
+
+    @DeleteMapping("/deleteLike")
+    public ResponseEntity<?> deleteLike(@RequestHeader String token, @RequestParam Integer postId) {
+        TokenValidationResult result = jwtUtil.validateTokenFull(token);
+        if (!result.isValid())
+            return ResponseEntity.badRequest().body(result.getErrorMessage().orElse("Invalid token"));
+        String username = jwtUtil.extractUsername(token);
+        Optional<User> opt_user = userRepository.findByLogin(username);
+        if (opt_user.isEmpty()) return ResponseEntity.notFound().build();
+        User user = opt_user.get();
+        Optional<Post> opt_post = postRepository.findById(postId);
+        if (opt_post.isEmpty()) return ResponseEntity.notFound().build();
+        Post post = opt_post.get();
+        Optional<Like> like = likeRepository.findByUserAndPost(user, post);
+        if (like.isEmpty()) return ResponseEntity.badRequest().body("Like not exists");
+        try {
+            likeRepository.delete(like.get());
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+            return ResponseEntity.badRequest().body("Something went wrong");
+        }
+        return ResponseEntity.ok().build();
+    }
+
 }
