@@ -3,7 +3,9 @@ package com.backend.melodyHub.model;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Entity
@@ -41,56 +43,59 @@ public class Post {
     )
     private Set<Category> categories = new HashSet<>();
 
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Like> likes = new ArrayList<>();
+
     public Integer getId() {
         return id;
-    }
-
-    public User getUser() {
-        return user;
-    }
-
-    public String getSourceUrl() {
-        return sourceUrl;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public byte[] getLeadsheet() {
-        return leadsheet;
-    }
-
-    public LocalDateTime getDateTime() {
-        return dateTime;
     }
 
     public void setId(Integer id) {
         this.id = id;
     }
 
+    public User getUser() {
+        return user;
+    }
+
     public void setUser(User user) {
         this.user = user;
+    }
+
+    public String getSourceUrl() {
+        return sourceUrl;
     }
 
     public void setSourceUrl(String sourceUrl) {
         this.sourceUrl = sourceUrl;
     }
 
+    public String getDescription() {
+        return description;
+    }
+
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public String getName() {
+        return name;
     }
 
     public void setName(String name) {
         this.name = name;
     }
 
+    public byte[] getLeadsheet() {
+        return leadsheet;
+    }
+
     public void setLeadsheet(byte[] leadsheet) {
         this.leadsheet = leadsheet;
+    }
+
+    public LocalDateTime getDateTime() {
+        return dateTime;
     }
 
     public void setDateTime(LocalDateTime dateTime) {
@@ -103,5 +108,13 @@ public class Post {
 
     public void setCategories(Set<Category> categories) {
         this.categories = categories;
+    }
+
+    public List<Like> getLikes() {
+        return likes;
+    }
+
+    public void setLikes(List<Like> likes) {
+        this.likes = likes;
     }
 }
