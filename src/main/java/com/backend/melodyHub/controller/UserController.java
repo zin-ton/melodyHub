@@ -1,9 +1,11 @@
 package com.backend.melodyHub.controller;
 
 import com.backend.melodyHub.component.JwtUtil;
+import com.backend.melodyHub.component.PasswordHasher;
 import com.backend.melodyHub.component.TokenValidationResult;
 import com.backend.melodyHub.dto.UserNoPasswordDTO;
 import com.backend.melodyHub.model.User;
+import com.backend.melodyHub.repository.CommentRepository;
 import com.backend.melodyHub.repository.UserRepository;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
@@ -20,12 +22,14 @@ import java.util.Optional;
 public class UserController {
     private final UserRepository userRepository;
     private final JwtUtil jwtUtil;
+    private final CommentRepository commentRepository;
     private final Logger logger = LoggerFactory.getLogger(UserController.class);
 
 
-    public UserController(UserRepository userRepository, JwtUtil jwtUtil) {
+    public UserController(UserRepository userRepository, JwtUtil jwtUtil, CommentRepository commentRepository) {
         this.userRepository = userRepository;
         this.jwtUtil = jwtUtil;
+        this.commentRepository = commentRepository;
     }
 
     @GetMapping("/userById")
@@ -77,6 +81,32 @@ public class UserController {
         userToEdit.setLogin(userNoPasswordDTO.getLogin());
         try {
             userRepository.save(userToEdit);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Unexpected error occurred.");
+        }
+    }
+
+    @DeleteMapping("/deleteUser")
+    public ResponseEntity<?> deleteUser(@RequestHeader String token, @RequestHeader String password) {
+        TokenValidationResult result = jwtUtil.validateTokenFull(token);
+        if (!result.isValid())
+            return ResponseEntity.badRequest().body(result.getErrorMessage().orElse("Invalid token"));
+        String regex = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@#$%^&+=!])[A-Za-z\\d@#$%^&+=!]{8,20}$";
+        if (!password.matches(regex))
+            return ResponseEntity.badRequest().body("Password must be 8-20 characters long and include at least one uppercase letter, one lowercase letter, one digit, and one special character (@#$%^&+=!)");
+        String username = jwtUtil.extractUsername(token);
+        Optional<User> opt_user = userRepository.findByLogin(username);
+        if (opt_user.isEmpty()) return ResponseEntity.notFound().build();
+        User user = opt_user.get();
+        if (!PasswordHasher.checkPassword(password, user.getPassword())) {
+            return ResponseEntity.badRequest().body("Password is not correct");
+        }
+        try {
+            commentRepository.reassignCommentsToDeletedUser(user);
+            userRepository.delete(user);
+            userRepository.flush();
             return ResponseEntity.ok().build();
         } catch (Exception e) {
             logger.error(e.getMessage());

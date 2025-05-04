@@ -11,6 +11,7 @@ import com.backend.melodyHub.repository.UserRepository;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -53,7 +54,7 @@ public class LikeController {
             likeRepository.save(new_like);
         } catch (Exception e) {
             logger.error(e.getMessage());
-            return ResponseEntity.badRequest().body("Something went wrong");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Something went wrong");
         }
         return ResponseEntity.ok().build();
     }
@@ -76,7 +77,7 @@ public class LikeController {
             likeRepository.delete(like.get());
         } catch (Exception e) {
             logger.error(e.getMessage());
-            return ResponseEntity.badRequest().body("Something went wrong");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Something went wrong");
         }
         return ResponseEntity.ok().build();
     }
