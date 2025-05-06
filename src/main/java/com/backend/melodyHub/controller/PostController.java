@@ -7,6 +7,7 @@ import com.backend.melodyHub.model.Category;
 import com.backend.melodyHub.model.Post;
 import com.backend.melodyHub.model.User;
 import com.backend.melodyHub.repository.CategoryRepository;
+import com.backend.melodyHub.repository.LikeRepository;
 import com.backend.melodyHub.repository.PostRepository;
 import com.backend.melodyHub.repository.UserRepository;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -26,11 +27,13 @@ public class PostController {
     private final Logger logger = LoggerFactory.getLogger(PostController.class);
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
-    public PostController(PostRepository postRepository, JwtUtil jwtUtil, UserRepository userRepository, CategoryRepository categoryRepository) {
+    private final LikeRepository likeRepository;
+    public PostController(PostRepository postRepository, JwtUtil jwtUtil, UserRepository userRepository, CategoryRepository categoryRepository, LikeRepository likeRepository) {
         this.postRepository = postRepository;
         this.jwtUtil = jwtUtil;
         this.userRepository = userRepository;
         this.categoryRepository = categoryRepository;
+        this.likeRepository = likeRepository;
     }
 
     @DeleteMapping("/deletePost")
@@ -182,5 +185,24 @@ public class PostController {
             logger.error(e.getMessage());
             return ResponseEntity.internalServerError().body("An error occurred while trying to edit the posts");
         }
+    }
+
+    @GetMapping("getPost")
+    public ResponseEntity<?> getPost(@RequestHeader String token, @RequestParam Integer postId) {
+        TokenValidationResult result = jwtUtil.validateTokenFull(token);
+        if(!result.isValid())
+            return ResponseEntity.badRequest().body(result.getErrorMessage().orElse("Invalid token"));
+        try{
+            Optional<Post> post = postRepository.findById(postId);
+            if (post.isPresent()) {
+                return ResponseEntity.ok(PostDTO.fromPost(post.get()));
+            }
+            return ResponseEntity.badRequest().body("Post not found");
+        }
+        catch (Exception e){
+            logger.error(e.getMessage());
+            return ResponseEntity.internalServerError().body("something went wrong");
+        }
+
     }
 }

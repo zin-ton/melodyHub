@@ -2,6 +2,7 @@ package com.backend.melodyHub.controller;
 
 import com.backend.melodyHub.component.JwtUtil;
 import com.backend.melodyHub.component.TokenValidationResult;
+import com.backend.melodyHub.dto.LikeDTO;
 import com.backend.melodyHub.model.Like;
 import com.backend.melodyHub.model.Post;
 import com.backend.melodyHub.model.User;
@@ -80,6 +81,24 @@ public class LikeController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Something went wrong");
         }
         return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("getLikesOnPost")
+    public ResponseEntity<?> getLikesOnPost(@RequestHeader String token, @RequestParam Integer postId) {
+        TokenValidationResult result = jwtUtil.validateTokenFull(token);
+        if(!result.isValid())
+            return ResponseEntity.badRequest().body(result.getErrorMessage().orElse("Invalid token"));
+        try{
+            Optional<Post> opt_post = postRepository.findById(postId);
+            if (opt_post.isEmpty()) return ResponseEntity.notFound().build();
+            Integer likesOnPost = likeRepository.countLikesByPost(opt_post.get());
+            return ResponseEntity.ok().body(new LikeDTO(likesOnPost));
+        }
+        catch (Exception e){
+            logger.error(e.getMessage());
+            return ResponseEntity.internalServerError().body("something went wrong");
+        }
+
     }
 
 }
