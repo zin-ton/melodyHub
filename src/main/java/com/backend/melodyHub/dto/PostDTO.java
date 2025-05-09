@@ -14,14 +14,16 @@ public class PostDTO {
     private String name;
     private byte[] leadsheet;
     private List<Integer> categories;
+    private String author;
 
-    public PostDTO(Integer id, String sourceUrl, String description, String name, byte[] leadsheet, List<Integer> categories) {
+    public PostDTO(Integer id, String sourceUrl, String description, String name, byte[] leadsheet, List<Integer> categories, String author) {
         this.id = id;
         this.sourceUrl = sourceUrl;
         this.description = description;
         this.name = name;
         this.leadsheet = leadsheet;
         this.categories = categories;
+        this.author = author;
     }
     public static PostDTO fromPost(Post post) {
         return new PostDTO(
@@ -30,7 +32,8 @@ public class PostDTO {
                 post.getDescription(),
                 post.getName(),
                 post.getLeadsheet(),
-                post.getCategories().stream().map(Category::getId).toList()
+                post.getCategories().stream().map(Category::getId).toList(),
+                post.getUser().getLogin()
         );
     }
 
@@ -93,4 +96,11 @@ public class PostDTO {
         this.categories = categories;
     }
 
+    public String getAuthor() {
+        return author;
+    }
+
+    public void setAuthor(String author) {
+        this.author = author;
+    }
 }
