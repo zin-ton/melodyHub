@@ -101,4 +101,28 @@ public class LikeController {
 
     }
 
+    @GetMapping("checkLikeOnPost")
+    public ResponseEntity<?> checkLikeOnPost(@RequestHeader String token, @RequestParam Integer postId) {
+        TokenValidationResult result = jwtUtil.validateTokenFull(token);
+        if(!result.isValid())
+            return ResponseEntity.badRequest().body(result.getErrorMessage().orElse("Invalid token"));
+        String username = jwtUtil.extractUsername(token);
+        try{
+            Optional<User> opt_user = userRepository.findByLogin(username);
+            if (opt_user.isEmpty()) return ResponseEntity.notFound().build();
+            User user = opt_user.get();
+            Optional<Post> opt_post = postRepository.findById(postId);
+            if (opt_post.isEmpty()) return ResponseEntity.notFound().build();
+            Post post = opt_post.get();
+            Optional<Like> like = likeRepository.findByUserAndPost(user, post);
+            if (like.isPresent()) return ResponseEntity.ok().body(Boolean.TRUE);
+            else return ResponseEntity.ok().body(Boolean.FALSE);
+        }
+        catch (Exception e){
+            logger.error(e.getMessage());
+            return ResponseEntity.internalServerError().body("something went wrong");
+        }
+
+    }
+
 }
