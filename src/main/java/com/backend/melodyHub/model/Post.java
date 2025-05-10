@@ -20,8 +20,8 @@ public class Post {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(name = "source_url")
-    private String sourceUrl;
+    @Column(name = "video_key")
+    private String videoKey;
 
     @Column(name = "description", columnDefinition = "text")
     private String description;
@@ -35,12 +35,11 @@ public class Post {
     @Column(name = "date_time")
     private LocalDateTime dateTime;
 
+    @Column(name = "preview_key")
+    private String previewKey;
+
     @ManyToMany(fetch = FetchType.EAGER)
-    @JoinTable(
-            name = "post_to_categories",
-            joinColumns = @JoinColumn(name = "post_id"),
-            inverseJoinColumns = @JoinColumn(name = "category_id")
-    )
+    @JoinTable(name = "post_to_categories", joinColumns = @JoinColumn(name = "post_id"), inverseJoinColumns = @JoinColumn(name = "category_id"))
     private Set<Category> categories = new HashSet<>();
 
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -62,12 +61,20 @@ public class Post {
         this.user = user;
     }
 
-    public String getSourceUrl() {
-        return sourceUrl;
+    public String getVideoKey() {
+        return videoKey;
     }
 
-    public void setSourceUrl(String sourceUrl) {
-        this.sourceUrl = sourceUrl;
+    public void setVideoKey(String videoKey) {
+        this.videoKey = videoKey;
+    }
+
+    public String getPreviewKey() {
+        return previewKey;
+    }
+
+    public void setPreviewKey(String previewKey) {
+        this.previewKey = previewKey;
     }
 
     public String getDescription() {
