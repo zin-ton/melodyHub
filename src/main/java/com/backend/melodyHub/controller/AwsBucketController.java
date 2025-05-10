@@ -3,6 +3,7 @@ package com.backend.melodyHub.controller;
 import com.backend.melodyHub.component.JwtUtil;
 import com.backend.melodyHub.component.S3Service;
 import com.backend.melodyHub.component.TokenValidationResult;
+import com.backend.melodyHub.dto.UploadVideoDTO;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -29,8 +30,18 @@ public class AwsBucketController {
         TokenValidationResult result = jwtUtil.validateTokenFull(token);
         if (!result.isValid())
             return ResponseEntity.badRequest().body(result.getErrorMessage().orElse("Invalid token"));
-        String key = "uploads/videos/" + UUID.randomUUID() + filename;
-        System.out.println(key);
-        return ResponseEntity.ok(s3Service.generateVideoUploadUrl(key));
+        String key = "videos/" + UUID.randomUUID() + filename;
+        String uploadUrl = s3Service.generateUploadUrl(key);
+        return ResponseEntity.ok(new UploadVideoDTO(key, uploadUrl));
+    }
+
+    @GetMapping("/getUploadImageLink")
+    public ResponseEntity<?> getUploadImageLink(@RequestHeader String token, @RequestHeader String filename) {
+        TokenValidationResult result = jwtUtil.validateTokenFull(token);
+        if (!result.isValid())
+            return ResponseEntity.badRequest().body(result.getErrorMessage().orElse("Invalid token"));
+        String key = "images/" + UUID.randomUUID() + filename;
+        String uploadUrl = s3Service.generateUploadUrl(key);
+        return ResponseEntity.ok(new UploadVideoDTO(key, uploadUrl));
     }
 }
