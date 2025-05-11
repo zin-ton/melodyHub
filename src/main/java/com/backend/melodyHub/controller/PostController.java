@@ -1,8 +1,10 @@
 package com.backend.melodyHub.controller;
 
 import com.backend.melodyHub.component.JwtUtil;
+import com.backend.melodyHub.component.S3Service;
 import com.backend.melodyHub.component.TokenValidationResult;
 import com.backend.melodyHub.dto.PostDTO;
+import com.backend.melodyHub.dto.PostPreviewDTO;
 import com.backend.melodyHub.model.Category;
 import com.backend.melodyHub.model.Post;
 import com.backend.melodyHub.model.User;
@@ -26,11 +28,14 @@ public class PostController {
     private final Logger logger = LoggerFactory.getLogger(PostController.class);
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
-    public PostController(PostRepository postRepository, JwtUtil jwtUtil, UserRepository userRepository, CategoryRepository categoryRepository) {
+    private final S3Service s3Service;
+
+    public PostController(PostRepository postRepository, JwtUtil jwtUtil, UserRepository userRepository, CategoryRepository categoryRepository, S3Service s3Service) {
         this.postRepository = postRepository;
         this.jwtUtil = jwtUtil;
         this.userRepository = userRepository;
         this.categoryRepository = categoryRepository;
+        this.s3Service = s3Service;
     }
 
     @DeleteMapping("/deletePost")
@@ -44,7 +49,7 @@ public class PostController {
             if (user.isPresent()) {
                 Optional<Post> post = postRepository.findById(postId);
                 if (post.isPresent()) {
-                    if(!Objects.equals(post.get().getUser().getId(), user.get().getId())) {
+                    if (!Objects.equals(post.get().getUser().getId(), user.get().getId())) {
                         return ResponseEntity.badRequest().body("You are not the owner of this post");
                     }
                     postRepository.delete(post.get());
@@ -66,29 +71,35 @@ public class PostController {
         TokenValidationResult result = jwtUtil.validateTokenFull(token);
         if (!result.isValid())
             return ResponseEntity.badRequest().body(result.getErrorMessage().orElse("Invalid token"));
-        if(filter.isEmpty()){
-            List<PostDTO> returnPosts = new ArrayList<>();
+        if (filter.isEmpty()) {
+            List<PostPreviewDTO> returnPosts = new ArrayList<>();
             List<Post> posts = postRepository.findAll();
-            posts.forEach(post -> returnPosts.add(PostDTO.fromPost(post)));
+            for (Post post : posts) {
+                String previewUrl = s3Service.generatePresignedPreviewUrl(post.getS3Key());
+                returnPosts.add(PostPreviewDTO.fromPost(post, previewUrl));
+            }
             return ResponseEntity.ok(returnPosts);
         }
-        try{
+        try {
             Set<Category> categories = new HashSet<>();
-            for(Integer categoryId : filter){
-                if(!categoryRepository.existsById(categoryId)){
+            for (Integer categoryId : filter) {
+                if (!categoryRepository.existsById(categoryId)) {
                     return ResponseEntity.badRequest().body("Category with id " + categoryId + " does not exist");
                 }
-                categories.add(categoryRepository.findById(categoryId).get());
+                Optional<Category> category = categoryRepository.findById(categoryId);
+                category.ifPresent(categories::add);
             }
             List<Post> posts = postRepository.findPostsByCategories(categories);
-            List<PostDTO> returnPosts = new ArrayList<>();
-            posts.forEach(post -> returnPosts.add(PostDTO.fromPost(post)));
-            if(returnPosts.isEmpty()){
-                return ResponseEntity.notFound().build();
+            List<PostPreviewDTO> returnPosts = new ArrayList<>();
+            for (Post post : posts) {
+                String previewUrl = s3Service.generatePresignedPreviewUrl(post.getS3Key());
+                returnPosts.add(PostPreviewDTO.fromPost(post, previewUrl));
+            }
+            if (returnPosts.isEmpty()) {
+                return ResponseEntity.ok(Collections.emptyList());
             }
             return ResponseEntity.ok(returnPosts);
-        }
-        catch (Exception e){
+        } catch (Exception e) {
             logger.error(e.getMessage());
             return ResponseEntity.internalServerError().body("An error occurred while trying to get the posts");
         }
@@ -99,16 +110,18 @@ public class PostController {
         TokenValidationResult result = jwtUtil.validateTokenFull(token);
         if (!result.isValid())
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You do not have permission to access this resource");
-        try{
+        try {
             List<Post> posts = postRepository.findAll();
-            List<PostDTO> returnPosts = new ArrayList<>();
-            posts.forEach(post -> returnPosts.add(PostDTO.fromPost(post)));
-            if(returnPosts.isEmpty()){
-                return ResponseEntity.notFound().build();
+            List<PostPreviewDTO> returnPosts = new ArrayList<>();
+            for (Post post : posts) {
+                String previewUrl = s3Service.generatePresignedPreviewUrl(post.getS3Key());
+                returnPosts.add(PostPreviewDTO.fromPost(post, previewUrl));
+            }
+            if (returnPosts.isEmpty()) {
+                return ResponseEntity.ok(Collections.emptyList());
             }
             return ResponseEntity.ok(returnPosts);
-        }
-        catch (Exception e){
+        } catch (Exception e) {
             logger.error(e.getMessage());
             return ResponseEntity.internalServerError().body("An error occurred while trying to get the posts");
         }
@@ -125,11 +138,12 @@ public class PostController {
             if (user.isPresent()) {
                 Post newPost;
                 Set<Category> categories = new HashSet<>();
-                for(Integer categoryId : post.getCategories()){
-                    if(!categoryRepository.existsById(categoryId)){
+                for (Integer categoryId : post.getCategories()) {
+                    if (!categoryRepository.existsById(categoryId)) {
                         return ResponseEntity.badRequest().body("Category with id " + categoryId + " does not exist");
                     }
-                    categories.add(categoryRepository.findById(categoryId).get());
+                    Optional<Category> category = categoryRepository.findById(categoryId);
+                    category.ifPresent(categories::add);
                 }
                 newPost = post.toPost(user.get(), categories);
                 postRepository.save(newPost);
@@ -155,19 +169,20 @@ public class PostController {
                 Optional<Post> postFromDb = postRepository.findById(post.getId());
                 if (postFromDb.isPresent()) {
                     Post postToEdit = postFromDb.get();
-                    if(!Objects.equals(postToEdit.getUser().getId(), user.get().getId())) {
+                    if (!Objects.equals(postToEdit.getUser().getId(), user.get().getId())) {
                         return ResponseEntity.badRequest().body("You are not the owner of this post");
                     }
-                    postToEdit.setSourceUrl(post.getSourceUrl());
+                    postToEdit.setS3Key(post.getS3Key());
                     postToEdit.setDescription(post.getDescription());
                     postToEdit.setName(post.getName());
                     postToEdit.setLeadsheet(post.getLeadsheet());
                     Set<Category> categories = new HashSet<>();
-                    for(Integer categoryId : post.getCategories()){
-                        if(!categoryRepository.existsById(categoryId)){
+                    for (Integer categoryId : post.getCategories()) {
+                        if (!categoryRepository.existsById(categoryId)) {
                             return ResponseEntity.badRequest().body("Category with id " + categoryId + " does not exist");
                         }
-                        categories.add(categoryRepository.findById(categoryId).get());
+                        Optional<Category> category = categoryRepository.findById(categoryId);
+                        category.ifPresent(categories::add);
                     }
                     postToEdit.setCategories(categories);
                     postRepository.save(postToEdit);

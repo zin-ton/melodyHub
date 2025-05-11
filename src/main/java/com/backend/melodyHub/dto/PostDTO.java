@@ -9,34 +9,24 @@ import java.util.Set;
 
 public class PostDTO {
     private Integer id;
-    private String sourceUrl;
+    private String s3Key;
     private String description;
     private String name;
     private byte[] leadsheet;
     private List<Integer> categories;
 
-    public PostDTO(Integer id, String sourceUrl, String description, String name, byte[] leadsheet, List<Integer> categories) {
+    public PostDTO(Integer id, String s3Key, String description, String name, byte[] leadsheet, List<Integer> categories) {
         this.id = id;
-        this.sourceUrl = sourceUrl;
+        this.s3Key = s3Key;
         this.description = description;
         this.name = name;
         this.leadsheet = leadsheet;
         this.categories = categories;
     }
-    public static PostDTO fromPost(Post post) {
-        return new PostDTO(
-                post.getId(),
-                post.getSourceUrl(),
-                post.getDescription(),
-                post.getName(),
-                post.getLeadsheet(),
-                post.getCategories().stream().map(Category::getId).toList()
-        );
-    }
 
     public Post toPost(User user, Set<Category> categories) {
         Post post = new Post();
-        post.setSourceUrl(this.sourceUrl);
+        post.setS3Key(this.s3Key);
         post.setDescription(this.description);
         post.setName(this.name);
         post.setLeadsheet(this.leadsheet);
@@ -44,6 +34,7 @@ public class PostDTO {
         post.setCategories(categories);
         return post;
     }
+
     public Integer getId() {
         return id;
     }
@@ -52,12 +43,12 @@ public class PostDTO {
         this.id = id;
     }
 
-    public String getSourceUrl() {
-        return sourceUrl;
+    public String getS3Key() {
+        return s3Key;
     }
 
-    public void setSourceUrl(String sourceUrl) {
-        this.sourceUrl = sourceUrl;
+    public void setS3Key(String s3Key) {
+        this.s3Key = s3Key;
     }
 
     public String getDescription() {

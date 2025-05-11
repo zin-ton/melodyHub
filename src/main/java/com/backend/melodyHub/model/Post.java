@@ -20,8 +20,8 @@ public class Post {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(name = "source_url")
-    private String sourceUrl;
+    @Column(name = "s3_key")
+    private String s3Key;
 
     @Column(name = "description", columnDefinition = "text")
     private String description;
@@ -36,11 +36,7 @@ public class Post {
     private LocalDateTime dateTime;
 
     @ManyToMany(fetch = FetchType.EAGER)
-    @JoinTable(
-            name = "post_to_categories",
-            joinColumns = @JoinColumn(name = "post_id"),
-            inverseJoinColumns = @JoinColumn(name = "category_id")
-    )
+    @JoinTable(name = "post_to_categories", joinColumns = @JoinColumn(name = "post_id"), inverseJoinColumns = @JoinColumn(name = "category_id"))
     private Set<Category> categories = new HashSet<>();
 
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -62,20 +58,20 @@ public class Post {
         this.user = user;
     }
 
-    public String getSourceUrl() {
-        return sourceUrl;
-    }
-
-    public void setSourceUrl(String sourceUrl) {
-        this.sourceUrl = sourceUrl;
-    }
-
     public String getDescription() {
         return description;
     }
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public String getS3Key() {
+        return s3Key;
+    }
+
+    public void setS3Key(String s3Key) {
+        this.s3Key = s3Key;
     }
 
     public String getName() {
