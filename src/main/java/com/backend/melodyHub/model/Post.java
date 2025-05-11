@@ -20,8 +20,8 @@ public class Post {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(name = "video_key")
-    private String videoKey;
+    @Column(name = "s3_key")
+    private String s3Key;
 
     @Column(name = "description", columnDefinition = "text")
     private String description;
@@ -34,9 +34,6 @@ public class Post {
 
     @Column(name = "date_time")
     private LocalDateTime dateTime;
-
-    @Column(name = "preview_key")
-    private String previewKey;
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "post_to_categories", joinColumns = @JoinColumn(name = "post_id"), inverseJoinColumns = @JoinColumn(name = "category_id"))
@@ -61,28 +58,20 @@ public class Post {
         this.user = user;
     }
 
-    public String getVideoKey() {
-        return videoKey;
-    }
-
-    public void setVideoKey(String videoKey) {
-        this.videoKey = videoKey;
-    }
-
-    public String getPreviewKey() {
-        return previewKey;
-    }
-
-    public void setPreviewKey(String previewKey) {
-        this.previewKey = previewKey;
-    }
-
     public String getDescription() {
         return description;
     }
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public String getS3Key() {
+        return s3Key;
+    }
+
+    public void setS3Key(String s3Key) {
+        this.s3Key = s3Key;
     }
 
     public String getName() {

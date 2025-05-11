@@ -75,7 +75,7 @@ public class PostController {
             List<PostPreviewDTO> returnPosts = new ArrayList<>();
             List<Post> posts = postRepository.findAll();
             for (Post post : posts) {
-                String previewUrl = s3Service.generatePresignedUrl(post.getPreviewKey());
+                String previewUrl = s3Service.generatePresignedPreviewUrl(post.getS3Key());
                 returnPosts.add(PostPreviewDTO.fromPost(post, previewUrl));
             }
             return ResponseEntity.ok(returnPosts);
@@ -92,7 +92,7 @@ public class PostController {
             List<Post> posts = postRepository.findPostsByCategories(categories);
             List<PostPreviewDTO> returnPosts = new ArrayList<>();
             for (Post post : posts) {
-                String previewUrl = s3Service.generatePresignedUrl(post.getPreviewKey());
+                String previewUrl = s3Service.generatePresignedPreviewUrl(post.getS3Key());
                 returnPosts.add(PostPreviewDTO.fromPost(post, previewUrl));
             }
             if (returnPosts.isEmpty()) {
@@ -114,7 +114,7 @@ public class PostController {
             List<Post> posts = postRepository.findAll();
             List<PostPreviewDTO> returnPosts = new ArrayList<>();
             for (Post post : posts) {
-                String previewUrl = s3Service.generatePresignedUrl(post.getPreviewKey());
+                String previewUrl = s3Service.generatePresignedPreviewUrl(post.getS3Key());
                 returnPosts.add(PostPreviewDTO.fromPost(post, previewUrl));
             }
             if (returnPosts.isEmpty()) {
@@ -172,7 +172,7 @@ public class PostController {
                     if (!Objects.equals(postToEdit.getUser().getId(), user.get().getId())) {
                         return ResponseEntity.badRequest().body("You are not the owner of this post");
                     }
-                    postToEdit.setVideoKey(post.getVideoKey());
+                    postToEdit.setS3Key(post.getS3Key());
                     postToEdit.setDescription(post.getDescription());
                     postToEdit.setName(post.getName());
                     postToEdit.setLeadsheet(post.getLeadsheet());

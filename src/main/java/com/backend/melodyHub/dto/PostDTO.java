@@ -9,15 +9,15 @@ import java.util.Set;
 
 public class PostDTO {
     private Integer id;
-    private String videoKey;
+    private String s3Key;
     private String description;
     private String name;
     private byte[] leadsheet;
     private List<Integer> categories;
 
-    public PostDTO(Integer id, String videoKey, String description, String name, byte[] leadsheet, List<Integer> categories) {
+    public PostDTO(Integer id, String s3Key, String description, String name, byte[] leadsheet, List<Integer> categories) {
         this.id = id;
-        this.videoKey = videoKey;
+        this.s3Key = s3Key;
         this.description = description;
         this.name = name;
         this.leadsheet = leadsheet;
@@ -26,7 +26,7 @@ public class PostDTO {
 
     public Post toPost(User user, Set<Category> categories) {
         Post post = new Post();
-        post.setVideoKey(this.videoKey);
+        post.setS3Key(this.s3Key);
         post.setDescription(this.description);
         post.setName(this.name);
         post.setLeadsheet(this.leadsheet);
@@ -43,12 +43,12 @@ public class PostDTO {
         this.id = id;
     }
 
-    public String getVideoKey() {
-        return videoKey;
+    public String getS3Key() {
+        return s3Key;
     }
 
-    public void setVideoKey(String videoKey) {
-        this.videoKey = videoKey;
+    public void setS3Key(String s3Key) {
+        this.s3Key = s3Key;
     }
 
     public String getDescription() {
