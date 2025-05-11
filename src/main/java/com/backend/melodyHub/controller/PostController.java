@@ -5,16 +5,15 @@ import com.backend.melodyHub.component.TokenValidationResult;
 import com.backend.melodyHub.dto.PostDTO;
 import com.backend.melodyHub.model.Category;
 import com.backend.melodyHub.model.Post;
+import com.backend.melodyHub.model.Saved;
 import com.backend.melodyHub.model.User;
-import com.backend.melodyHub.repository.CategoryRepository;
-import com.backend.melodyHub.repository.LikeRepository;
-import com.backend.melodyHub.repository.PostRepository;
-import com.backend.melodyHub.repository.UserRepository;
+import com.backend.melodyHub.repository.*;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
@@ -27,13 +26,13 @@ public class PostController {
     private final Logger logger = LoggerFactory.getLogger(PostController.class);
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
-    private final LikeRepository likeRepository;
-    public PostController(PostRepository postRepository, JwtUtil jwtUtil, UserRepository userRepository, CategoryRepository categoryRepository, LikeRepository likeRepository) {
+    private final SavedRepository savedRepository;
+    public PostController(PostRepository postRepository, JwtUtil jwtUtil, UserRepository userRepository, CategoryRepository categoryRepository, SavedRepository savedRepository) {
         this.postRepository = postRepository;
         this.jwtUtil = jwtUtil;
         this.userRepository = userRepository;
         this.categoryRepository = categoryRepository;
-        this.likeRepository = likeRepository;
+        this.savedRepository = savedRepository;
     }
 
     @DeleteMapping("/deletePost")
@@ -204,5 +203,82 @@ public class PostController {
             return ResponseEntity.internalServerError().body("something went wrong");
         }
 
+    }
+    @PostMapping("addToFavorites")
+    public ResponseEntity<?> addToFavorites(@RequestHeader String token, @RequestParam Integer postId) {
+        TokenValidationResult result = jwtUtil.validateTokenFull(token);
+        if(!result.isValid())
+            return ResponseEntity.badRequest().body(result.getErrorMessage().orElse("Invalid token"));
+        String username = jwtUtil.extractUsername(token);
+        try{
+            Optional<User> opt_user = userRepository.findByLogin(username);
+            if (opt_user.isEmpty()) return ResponseEntity.badRequest().body("User not found");
+            User user = opt_user.get();
+            Optional<Post> opt_post = postRepository.findById(postId);
+            if (opt_post.isEmpty()) return ResponseEntity.badRequest().body("Post not found");
+            Post post = opt_post.get();
+            Optional<Saved> saved = savedRepository.findByUserAndPost(user, post);
+            if (saved.isPresent()) return ResponseEntity.badRequest().body("Post already saved");
+            else{
+                Saved new_saved = new Saved();
+                new_saved.setUser(user);
+                new_saved.setPost(post);
+                savedRepository.save(new_saved);
+                return ResponseEntity.ok("Post saved successfully");
+            }
+        }
+        catch (Exception e){
+            logger.error(e.getMessage());
+            return ResponseEntity.internalServerError().body("something went wrong");
+        }
+    }
+
+    @DeleteMapping("deleteFromFavorites")
+    public ResponseEntity<?> deleteFromFavorites(@RequestHeader String token, @RequestParam Integer postId) {
+        TokenValidationResult result = jwtUtil.validateTokenFull(token);
+        if(!result.isValid())
+            return ResponseEntity.badRequest().body(result.getErrorMessage().orElse("Invalid token"));
+        String username = jwtUtil.extractUsername(token);
+        try{
+            Optional<User> opt_user = userRepository.findByLogin(username);
+            if (opt_user.isEmpty()) return ResponseEntity.badRequest().body("User not found");
+            User user = opt_user.get();
+            Optional<Post> opt_post = postRepository.findById(postId);
+            if (opt_post.isEmpty()) return ResponseEntity.badRequest().body("Post not found");
+            Post post = opt_post.get();
+            Optional<Saved> saved = savedRepository.findByUserAndPost(user, post);
+            if (saved.isEmpty()) return ResponseEntity.badRequest().body("Post not saved");
+            else{
+                savedRepository.delete(saved.get());
+                return ResponseEntity.ok("Post removed from saved successfully");
+            }
+        }
+        catch (Exception e){
+            logger.error(e.getMessage());
+            return ResponseEntity.internalServerError().body("something went wrong");
+        }
+    }
+    @Transactional
+    @GetMapping("getSavedPosts")
+    public ResponseEntity<?> getSavedPosts(@RequestHeader String token) {
+        TokenValidationResult result = jwtUtil.validateTokenFull(token);
+        if(!result.isValid())
+            return ResponseEntity.badRequest().body(result.getErrorMessage().orElse("Invalid token"));
+        String username = jwtUtil.extractUsername(token);
+        try{
+            Optional<User> opt_user = userRepository.findByLogin(username);
+            if (opt_user.isEmpty()) return ResponseEntity.badRequest().body("User not found");
+            User user = opt_user.get();
+            List<Saved> savedPosts = savedRepository.findByUser(user);
+            List<PostDTO> postsDTO = new ArrayList<>();
+            for(Saved post: savedPosts){
+                postsDTO.add(PostDTO.fromPost(post.getPost()));
+            }
+            return ResponseEntity.ok(postsDTO);
+        }
+        catch (Exception e){
+            logger.error(e.getMessage());
+            return ResponseEntity.internalServerError().body("something went wrong");
+        }
     }
 }
