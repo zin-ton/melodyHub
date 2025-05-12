@@ -14,14 +14,15 @@ public class PostDTO {
     private String name;
     private byte[] leadsheet;
     private List<Integer> categories;
+    private String author;
 
-    public PostDTO(Integer id, String s3Key, String description, String name, byte[] leadsheet, List<Integer> categories) {
-        this.id = id;
+    public PostDTO(Integer id, String s3Key, String description, String name, byte[] leadsheet, List<Integer> categories, String author) {
         this.s3Key = s3Key;
         this.description = description;
         this.name = name;
         this.leadsheet = leadsheet;
         this.categories = categories;
+        this.author = author;
     }
 
     public Post toPost(User user, Set<Category> categories) {
@@ -33,6 +34,18 @@ public class PostDTO {
         post.setUser(user);
         post.setCategories(categories);
         return post;
+    }
+
+    public static PostDTO fromPost(Post post) {
+        return new PostDTO(
+                post.getId(),
+                post.getS3Key(),
+                post.getDescription(),
+                post.getName(),
+                post.getLeadsheet(),
+                post.getCategories().stream().map(Category::getId).toList(),
+                post.getUser().getLogin()
+        );
     }
 
     public Integer getId() {
@@ -84,4 +97,11 @@ public class PostDTO {
         this.categories = categories;
     }
 
+    public String getAuthor() {
+        return author;
+    }
+
+    public void setAuthor(String author) {
+        this.author = author;
+    }
 }

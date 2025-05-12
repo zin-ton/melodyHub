@@ -10,8 +10,10 @@ public class CommentDTO {
     private String content;
     private Integer postId;
     private Integer replyToId;
+    private Integer userId;
+    private String userName;
 
-    public static CommentDTO toCommentDTO(Comment comment) {
+    public static CommentDTO toCommentDTO(Comment comment, String userName) {
         CommentDTO commentDTO = new CommentDTO();
         commentDTO.setId(comment.getId());
         commentDTO.setContent(comment.getContent());
@@ -19,6 +21,8 @@ public class CommentDTO {
         if (comment.getReplyTo() != null) {
             commentDTO.setReplyToId(comment.getReplyTo().getId());
         }
+        commentDTO.setUserId(comment.getUser().getId());
+        commentDTO.setUserName(userName);
         return commentDTO;
     }
 
@@ -63,5 +67,21 @@ public class CommentDTO {
 
     public void setReplyToId(Integer replyToId) {
         this.replyToId = replyToId;
+    }
+
+    public Integer getUserId() {
+        return userId;
+    }
+
+    public void setUserId(Integer userId) {
+        this.userId = userId;
+    }
+
+    public String getUserName() {
+        return userName;
+    }
+
+    public void setUserName(String userName) {
+        this.userName = userName;
     }
 }

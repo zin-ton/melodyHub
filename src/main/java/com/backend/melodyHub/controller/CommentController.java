@@ -13,6 +13,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
@@ -106,6 +107,7 @@ public class CommentController {
         }
     }
 
+    @Transactional
     @GetMapping("getCommentCreatedByUser")
     public ResponseEntity<?> getCommentCreatedByUser(@RequestHeader String token) {
         TokenValidationResult result = jwtUtil.validateTokenFull(token);
@@ -121,7 +123,7 @@ public class CommentController {
             else{
                 for (Comment comment : opt_comment) {
 
-                    comments.add(CommentDTO.toCommentDTO(comment));
+                    comments.add(CommentDTO.toCommentDTO(comment, comment.getUser().getLogin()));
                 }
             }
             return ResponseEntity.ok(comments);
@@ -132,6 +134,7 @@ public class CommentController {
         }
     }
 
+    @Transactional
     @GetMapping("getCommentByPost")
     public ResponseEntity<?> getCommentByPost(@RequestHeader String token, @RequestParam Integer postId) {
         TokenValidationResult result = jwtUtil.validateTokenFull(token);
@@ -146,7 +149,7 @@ public class CommentController {
             if (opt_comment.isEmpty()) return ResponseEntity.badRequest().body("Comment not found");
             else{
                 for (Comment comment : opt_comment) {
-                    comments.add(CommentDTO.toCommentDTO(comment));
+                    comments.add(CommentDTO.toCommentDTO(comment, comment.getUser().getLogin()));
                 }
             }
             return ResponseEntity.ok(comments);
