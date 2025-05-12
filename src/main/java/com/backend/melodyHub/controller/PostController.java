@@ -4,6 +4,7 @@ import com.backend.melodyHub.component.JwtUtil;
 import com.backend.melodyHub.component.S3Service;
 import com.backend.melodyHub.component.TokenValidationResult;
 import com.backend.melodyHub.dto.PostDTO;
+import com.backend.melodyHub.dto.PostPageDTO;
 import com.backend.melodyHub.dto.PostPreviewDTO;
 import com.backend.melodyHub.model.Category;
 import com.backend.melodyHub.model.Post;
@@ -212,7 +213,8 @@ public class PostController {
         try{
             Optional<Post> post = postRepository.findById(postId);
             if (post.isPresent()) {
-                return ResponseEntity.ok(PostDTO.fromPost(post.get()));
+                PostPageDTO returnPost = PostPageDTO.fromPost(post.get(), s3Service.generatePresignedPreviewUrl(post.get().getS3Key()), s3Service.generatePresignedVideoUrl(post.get().getS3Key()));
+                return ResponseEntity.ok(returnPost);
             }
             return ResponseEntity.badRequest().body("Post not found");
         }
@@ -288,9 +290,9 @@ public class PostController {
             if (opt_user.isEmpty()) return ResponseEntity.badRequest().body("User not found");
             User user = opt_user.get();
             List<Saved> savedPosts = savedRepository.findByUser(user);
-            List<PostDTO> postsDTO = new ArrayList<>();
+            List<PostPreviewDTO> postsDTO = new ArrayList<>();
             for(Saved post: savedPosts){
-                postsDTO.add(PostDTO.fromPost(post.getPost()));
+                postsDTO.add(PostPreviewDTO.fromPost(post.getPost(), s3Service.generatePresignedPreviewUrl(post.getPost().getS3Key())));
             }
             return ResponseEntity.ok(postsDTO);
         }
