@@ -205,32 +205,31 @@ public class PostController {
         }
     }
 
-    @GetMapping("getPost")
+    @GetMapping("/getPost")
     public ResponseEntity<?> getPost(@RequestHeader String token, @RequestParam Integer postId) {
         TokenValidationResult result = jwtUtil.validateTokenFull(token);
-        if(!result.isValid())
+        if (!result.isValid())
             return ResponseEntity.badRequest().body(result.getErrorMessage().orElse("Invalid token"));
-        try{
+        try {
             Optional<Post> post = postRepository.findById(postId);
             if (post.isPresent()) {
                 PostPageDTO returnPost = PostPageDTO.fromPost(post.get(), s3Service.generatePresignedPreviewUrl(post.get().getS3Key()), s3Service.generatePresignedVideoUrl(post.get().getS3Key()));
                 return ResponseEntity.ok(returnPost);
             }
             return ResponseEntity.badRequest().body("Post not found");
-        }
-        catch (Exception e){
+        } catch (Exception e) {
             logger.error(e.getMessage());
             return ResponseEntity.internalServerError().body("something went wrong");
         }
     }
 
-    @PostMapping("addToFavorites")
-    public ResponseEntity<?> addToFavorites(@RequestHeader String token, @RequestParam Integer postId) {
+    @PostMapping("/addPostToFavorites")
+    public ResponseEntity<?> addPostToFavorites(@RequestHeader String token, @RequestParam Integer postId) {
         TokenValidationResult result = jwtUtil.validateTokenFull(token);
-        if(!result.isValid())
+        if (!result.isValid())
             return ResponseEntity.badRequest().body(result.getErrorMessage().orElse("Invalid token"));
         String username = jwtUtil.extractUsername(token);
-        try{
+        try {
             Optional<User> opt_user = userRepository.findByLogin(username);
             if (opt_user.isEmpty()) return ResponseEntity.badRequest().body("User not found");
             User user = opt_user.get();
@@ -239,27 +238,26 @@ public class PostController {
             Post post = opt_post.get();
             Optional<Saved> saved = savedRepository.findByUserAndPost(user, post);
             if (saved.isPresent()) return ResponseEntity.badRequest().body("Post already saved");
-            else{
+            else {
                 Saved new_saved = new Saved();
                 new_saved.setUser(user);
                 new_saved.setPost(post);
                 savedRepository.save(new_saved);
                 return ResponseEntity.ok("Post saved successfully");
             }
-        }
-        catch (Exception e){
+        } catch (Exception e) {
             logger.error(e.getMessage());
             return ResponseEntity.internalServerError().body("something went wrong");
         }
     }
 
-    @DeleteMapping("deleteFromFavorites")
-    public ResponseEntity<?> deleteFromFavorites(@RequestHeader String token, @RequestParam Integer postId) {
+    @DeleteMapping("/deletePostFromFavorites")
+    public ResponseEntity<?> deletePostFromFavorites(@RequestHeader String token, @RequestParam Integer postId) {
         TokenValidationResult result = jwtUtil.validateTokenFull(token);
-        if(!result.isValid())
+        if (!result.isValid())
             return ResponseEntity.badRequest().body(result.getErrorMessage().orElse("Invalid token"));
         String username = jwtUtil.extractUsername(token);
-        try{
+        try {
             Optional<User> opt_user = userRepository.findByLogin(username);
             if (opt_user.isEmpty()) return ResponseEntity.badRequest().body("User not found");
             User user = opt_user.get();
@@ -268,35 +266,34 @@ public class PostController {
             Post post = opt_post.get();
             Optional<Saved> saved = savedRepository.findByUserAndPost(user, post);
             if (saved.isEmpty()) return ResponseEntity.badRequest().body("Post not saved");
-            else{
+            else {
                 savedRepository.delete(saved.get());
                 return ResponseEntity.ok("Post removed from saved successfully");
             }
-        }
-        catch (Exception e){
+        } catch (Exception e) {
             logger.error(e.getMessage());
             return ResponseEntity.internalServerError().body("something went wrong");
         }
     }
+
     @Transactional
-    @GetMapping("getSavedPosts")
+    @GetMapping("/getSavedPosts")
     public ResponseEntity<?> getSavedPosts(@RequestHeader String token) {
         TokenValidationResult result = jwtUtil.validateTokenFull(token);
-        if(!result.isValid())
+        if (!result.isValid())
             return ResponseEntity.badRequest().body(result.getErrorMessage().orElse("Invalid token"));
         String username = jwtUtil.extractUsername(token);
-        try{
+        try {
             Optional<User> opt_user = userRepository.findByLogin(username);
             if (opt_user.isEmpty()) return ResponseEntity.badRequest().body("User not found");
             User user = opt_user.get();
             List<Saved> savedPosts = savedRepository.findByUser(user);
             List<PostPreviewDTO> postsDTO = new ArrayList<>();
-            for(Saved post: savedPosts){
+            for (Saved post : savedPosts) {
                 postsDTO.add(PostPreviewDTO.fromPost(post.getPost(), s3Service.generatePresignedPreviewUrl(post.getPost().getS3Key())));
             }
             return ResponseEntity.ok(postsDTO);
-        }
-        catch (Exception e){
+        } catch (Exception e) {
             logger.error(e.getMessage());
             return ResponseEntity.internalServerError().body("something went wrong");
         }

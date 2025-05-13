@@ -4,25 +4,24 @@ import com.backend.melodyHub.model.Category;
 import com.backend.melodyHub.model.Post;
 
 import java.util.List;
-import java.util.Optional;
 
 public class PostPreviewDTO {
     private final Integer id;
     private final String previewUrl;
+    private final String name;
     private final String authorName;
     private List<Integer> categories;
 
-    public PostPreviewDTO(Integer id, String previewUrl, String authorName, List<Integer> categories) {
+    public PostPreviewDTO(Integer id, String previewUrl, String name, String authorName, List<Integer> categories) {
         this.id = id;
         this.previewUrl = previewUrl;
+        this.name = name;
         this.authorName = authorName;
         this.categories = categories;
     }
 
     public static PostPreviewDTO fromPost(Post post, String previewUrl) {
-        String fullName = Optional.ofNullable(post.getUser().getFirstName()).orElse("") + " " + Optional.ofNullable(post.getUser().getLastName()).orElse("");
-        fullName = fullName.trim();
-        return new PostPreviewDTO(post.getId(), previewUrl, fullName, post.getCategories().stream().map(Category::getId).toList());
+        return new PostPreviewDTO(post.getId(), previewUrl, post.getName(), post.getUser().getLogin(), post.getCategories().stream().map(Category::getId).toList());
     }
 
     public Integer getId() {
@@ -35,6 +34,10 @@ public class PostPreviewDTO {
 
     public String getAuthorName() {
         return authorName;
+    }
+
+    public String getName() {
+        return name;
     }
 
     public List<Integer> getCategories() {

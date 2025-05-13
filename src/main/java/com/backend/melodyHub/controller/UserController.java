@@ -7,6 +7,7 @@ import com.backend.melodyHub.dto.UserNoPasswordDTO;
 import com.backend.melodyHub.model.User;
 import com.backend.melodyHub.repository.CommentRepository;
 import com.backend.melodyHub.repository.UserRepository;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,6 +20,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 @RestController
+@Tag(name = "User Controller")
 public class UserController {
     private final UserRepository userRepository;
     private final JwtUtil jwtUtil;
