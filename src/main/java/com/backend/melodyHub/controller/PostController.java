@@ -301,4 +301,28 @@ public class PostController {
             return ResponseEntity.internalServerError().body("something went wrong");
         }
     }
+
+    @Transactional
+    @GetMapping("checkFavoritePost")
+    public ResponseEntity<?> checkFavoritePost(@RequestHeader String token, @RequestParam Integer postId) {
+        TokenValidationResult result = jwtUtil.validateTokenFull(token);
+        if(!result.isValid())
+            return ResponseEntity.badRequest().body(result.getErrorMessage().orElse("Invalid token"));
+        String username = jwtUtil.extractUsername(token);
+        try{
+            Optional<User> opt_user = userRepository.findByLogin(username);
+            if (opt_user.isEmpty()) return ResponseEntity.badRequest().body("User not found");
+            User user = opt_user.get();
+            Optional<Post> opt_post = postRepository.findById(postId);
+            if (opt_post.isEmpty()) return ResponseEntity.badRequest().body("Post not found");
+            Post post = opt_post.get();
+            Optional<Saved> saved = savedRepository.findByUserAndPost(user, post);
+            if (saved.isPresent()) return ResponseEntity.ok(Boolean.TRUE);
+            else return ResponseEntity.ok(Boolean.FALSE);
+        }
+        catch (Exception e){
+            logger.error(e.getMessage());
+            return ResponseEntity.internalServerError().body("something went wrong");
+        }
+    }
 }
