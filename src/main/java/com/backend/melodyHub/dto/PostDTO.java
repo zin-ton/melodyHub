@@ -12,15 +12,15 @@ public class PostDTO {
     private String s3Key;
     private String description;
     private String name;
-    private byte[] leadsheet;
+    private String leadsheetKey;
     private List<Integer> categories;
     private String author;
 
-    public PostDTO(Integer id, String s3Key, String description, String name, byte[] leadsheet, List<Integer> categories, String author) {
+    public PostDTO(Integer id, String s3Key, String description, String name, String leadsheet, List<Integer> categories, String author) {
         this.s3Key = s3Key;
         this.description = description;
         this.name = name;
-        this.leadsheet = leadsheet;
+        this.leadsheetKey = leadsheet;
         this.categories = categories;
         this.author = author;
     }
@@ -30,7 +30,7 @@ public class PostDTO {
         post.setS3Key(this.s3Key);
         post.setDescription(this.description);
         post.setName(this.name);
-        post.setLeadsheet(this.leadsheet);
+        post.setLeadsheetKey(this.leadsheetKey);
         post.setUser(user);
         post.setCategories(categories);
         return post;
@@ -42,7 +42,7 @@ public class PostDTO {
                 post.getS3Key(),
                 post.getDescription(),
                 post.getName(),
-                post.getLeadsheet(),
+                post.getLeadsheetKey(),
                 post.getCategories().stream().map(Category::getId).toList(),
                 post.getUser().getLogin()
         );
@@ -80,12 +80,12 @@ public class PostDTO {
         this.name = name;
     }
 
-    public byte[] getLeadsheet() {
-        return leadsheet;
+    public String getLeadsheetKey() {
+        return leadsheetKey;
     }
 
-    public void setLeadsheet(byte[] leadsheet) {
-        this.leadsheet = leadsheet;
+    public void setLeadsheetKey(String leadsheetKey) {
+        this.leadsheetKey = leadsheetKey;
     }
 
 

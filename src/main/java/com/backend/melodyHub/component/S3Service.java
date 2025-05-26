@@ -50,6 +50,13 @@ public class S3Service {
         return generatePresignedUrl(key);
     }
 
+    public String generatePresignedLeadsheetUrl(String key) {
+        if (key != null && !key.trim().isEmpty()) {
+            return generatePresignedUrl(key);
+        }
+        return null;
+    }
+
     private String generatePresignedUrl(String key) {
         if (key == null || key.trim().isEmpty()) {
             return null;

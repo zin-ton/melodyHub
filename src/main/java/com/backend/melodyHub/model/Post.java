@@ -29,8 +29,8 @@ public class Post {
     @Column(name = "name")
     private String name;
 
-    @Column(name = "leadsheet")
-    private byte[] leadsheet;
+    @Column(name = "leadsheet_key")
+    private String leadsheetKey;
 
     @Column(name = "date_time")
     private LocalDateTime dateTime;
@@ -82,12 +82,12 @@ public class Post {
         this.name = name;
     }
 
-    public byte[] getLeadsheet() {
-        return leadsheet;
+    public String getLeadsheetKey() {
+        return leadsheetKey;
     }
 
-    public void setLeadsheet(byte[] leadsheet) {
-        this.leadsheet = leadsheet;
+    public void setLeadsheetKey(String leadsheet) {
+        this.leadsheetKey = leadsheet;
     }
 
     public LocalDateTime getDateTime() {

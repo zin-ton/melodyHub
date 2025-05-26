@@ -14,8 +14,9 @@ public class PostPageDTO {
     private final String description;
     private final String postUrl;
     private final String name;
+    private final String leadsheetUrl;
 
-    public PostPageDTO(Integer id, String previewUrl, String authorName, List<Integer> categories, String description, String postUrl, String name) {
+    public PostPageDTO(Integer id, String previewUrl, String authorName, List<Integer> categories, String description, String postUrl, String name, String leadsheetKey) {
         this.id = id;
         this.previewUrl = previewUrl;
         this.authorName = authorName;
@@ -23,10 +24,12 @@ public class PostPageDTO {
         this.description = description;
         this.postUrl = postUrl;
         this.name = name;
+        this.leadsheetUrl = leadsheetKey;
     }
 
-    public static PostPageDTO fromPost(Post post, String previewUrl, String postUrl) {
-        return new PostPageDTO(post.getId(), previewUrl, String.valueOf(Optional.ofNullable(post.getUser().getLogin())), post.getCategories().stream().map(Category::getId).toList(), post.getDescription(), postUrl, post.getName());
+    public static PostPageDTO fromPost(Post post, String previewUrl, String postUrl, String leadsheetUrl) {
+        return new PostPageDTO(post.getId(), previewUrl, String.valueOf(Optional.ofNullable(post.getUser().getLogin())), post.getCategories().stream().map(Category::getId).toList(), post.getDescription(), postUrl, post.getName(),
+                leadsheetUrl);
     }
 
     public Integer getId() {
@@ -59,5 +62,9 @@ public class PostPageDTO {
 
     public String getName() {
         return name;
+    }
+
+    public String getLeadsheetUrl() {
+        return leadsheetUrl;
     }
 }
