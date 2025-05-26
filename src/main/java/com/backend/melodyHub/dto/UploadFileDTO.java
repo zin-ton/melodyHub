@@ -1,19 +1,19 @@
 package com.backend.melodyHub.dto;
 
-public class UploadVideoDTO {
-    private final String videoKey;
+public class UploadFileDTO {
+    private final String fileKey;
     private final String preSignedUploadUrl;
 
-    public UploadVideoDTO(String videoKey, String preSignedUploadUrl) {
+    public UploadFileDTO(String fileKey, String preSignedUploadUrl) {
         this.preSignedUploadUrl = preSignedUploadUrl;
-        this.videoKey = videoKey;
+        this.fileKey = fileKey;
     }
 
     public String getPreSignedUploadUrl() {
         return preSignedUploadUrl;
     }
 
-    public String getVideoKey() {
-        return videoKey;
+    public String getFileKey() {
+        return fileKey;
     }
 }

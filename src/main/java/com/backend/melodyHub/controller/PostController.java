@@ -181,7 +181,7 @@ public class PostController {
                     postToEdit.setS3Key(post.getS3Key());
                     postToEdit.setDescription(post.getDescription());
                     postToEdit.setName(post.getName());
-                    postToEdit.setLeadsheet(post.getLeadsheet());
+                    postToEdit.setLeadsheetKey(post.getLeadsheetKey());
                     Set<Category> categories = new HashSet<>();
                     for (Integer categoryId : post.getCategories()) {
                         if (!categoryRepository.existsById(categoryId)) {
@@ -213,7 +213,11 @@ public class PostController {
         try {
             Optional<Post> post = postRepository.findById(postId);
             if (post.isPresent()) {
-                PostPageDTO returnPost = PostPageDTO.fromPost(post.get(), s3Service.generatePresignedPreviewUrl(post.get().getS3Key()), s3Service.generatePresignedVideoUrl(post.get().getS3Key()));
+                String leadsheetUrl = "";
+                if (post.get().getLeadsheetKey() != null) {
+                    leadsheetUrl = s3Service.generatePresignedLeadsheetUrl(post.get().getLeadsheetKey());
+                }
+                PostPageDTO returnPost = PostPageDTO.fromPost(post.get(), s3Service.generatePresignedPreviewUrl(post.get().getS3Key()), s3Service.generatePresignedVideoUrl(post.get().getS3Key()), leadsheetUrl);
                 return ResponseEntity.ok(returnPost);
             }
             return ResponseEntity.badRequest().body("Post not found");
@@ -303,10 +307,10 @@ public class PostController {
     @GetMapping("checkFavoritePost")
     public ResponseEntity<?> checkFavoritePost(@RequestHeader String token, @RequestParam Integer postId) {
         TokenValidationResult result = jwtUtil.validateTokenFull(token);
-        if(!result.isValid())
+        if (!result.isValid())
             return ResponseEntity.badRequest().body(result.getErrorMessage().orElse("Invalid token"));
         String username = jwtUtil.extractUsername(token);
-        try{
+        try {
             Optional<User> opt_user = userRepository.findByLogin(username);
             if (opt_user.isEmpty()) return ResponseEntity.badRequest().body("User not found");
             User user = opt_user.get();
@@ -316,8 +320,7 @@ public class PostController {
             Optional<Saved> saved = savedRepository.findByUserAndPost(user, post);
             if (saved.isPresent()) return ResponseEntity.ok(Boolean.TRUE);
             else return ResponseEntity.ok(Boolean.FALSE);
-        }
-        catch (Exception e){
+        } catch (Exception e) {
             logger.error(e.getMessage());
             return ResponseEntity.internalServerError().body("something went wrong");
         }
