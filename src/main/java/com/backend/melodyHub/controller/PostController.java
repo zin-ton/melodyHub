@@ -22,6 +22,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.*;
 
 @RestController
@@ -323,6 +324,132 @@ public class PostController {
         } catch (Exception e) {
             logger.error(e.getMessage());
             return ResponseEntity.internalServerError().body("something went wrong");
+        }
+    }
+
+    @GetMapping("/getPostsSortedByDateAndLikes")
+    public ResponseEntity<?> getPostsSortedByDateAndLikes(@RequestHeader String token) {
+        TokenValidationResult result = jwtUtil.validateTokenFull(token);
+        if (!result.isValid()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Invalid token");
+        }
+
+        try {
+            List<Post> posts = postRepository.findAll();
+            LocalDateTime oneMonthAgo = LocalDateTime.now().minusMonths(1);
+            posts.sort((p1, p2) -> {
+                long p1Likes = p1.getLikes().stream()
+                        .filter(like -> like.getLikeDate() != null && like.getLikeDate().isAfter(oneMonthAgo))
+                        .count();
+
+                long p2Likes = p2.getLikes().stream()
+                        .filter(like -> like.getLikeDate() != null && like.getLikeDate().isAfter(oneMonthAgo))
+                        .count();
+
+                if (p1Likes != p2Likes) {
+                    return Long.compare(p2Likes, p1Likes);
+                } else {
+                    return p2.getDateTime().compareTo(p1.getDateTime());
+                }
+            });
+
+            List<PostPreviewDTO> sortedPostPreviews = new ArrayList<>();
+            for (Post post : posts) {
+                String previewUrl = s3Service.generatePresignedPreviewUrl(post.getS3Key());
+                sortedPostPreviews.add(PostPreviewDTO.fromPost(post, previewUrl));
+            }
+
+            return ResponseEntity.ok(sortedPostPreviews);
+        } catch (Exception e) {
+            logger.error("Error while sorting posts: " + e.getMessage());
+            return ResponseEntity.internalServerError().body("Something went wrong while sorting posts");
+        }
+    }
+
+    @GetMapping("/getPostsSortedByDate")
+    public ResponseEntity<?> getPostsSortedByDate(@RequestHeader String token) {
+        TokenValidationResult result = jwtUtil.validateTokenFull(token);
+        if (!result.isValid()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Invalid token");
+        }
+
+        try {
+            List<Post> posts = postRepository.findAll();
+
+            posts.sort((p1, p2) -> p2.getDateTime().compareTo(p1.getDateTime()));
+
+            List<PostPreviewDTO> resultPosts = new ArrayList<>();
+            for (Post post : posts) {
+                String previewUrl = s3Service.generatePresignedPreviewUrl(post.getS3Key());
+                resultPosts.add(PostPreviewDTO.fromPost(post, previewUrl));
+            }
+
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            logger.error("Error while sorting by date: " + e.getMessage());
+            return ResponseEntity.internalServerError().body("Something went wrong while sorting by date");
+        }
+    }
+
+    @GetMapping("/getPostsSortedByLikes")
+    public ResponseEntity<?> getPostsSortedByLikes(@RequestHeader String token) {
+        TokenValidationResult result = jwtUtil.validateTokenFull(token);
+        if (!result.isValid()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Invalid token");
+        }
+
+        try {
+            List<Post> posts = postRepository.findAll();
+            LocalDateTime oneMonthAgo = LocalDateTime.now().minusMonths(1);
+
+            posts.sort((p1, p2) -> {
+                long likes1 = p1.getLikes().stream()
+                        .filter(like -> like.getLikeDate() != null && like.getLikeDate().isAfter(oneMonthAgo))
+                        .count();
+
+                long likes2 = p2.getLikes().stream()
+                        .filter(like -> like.getLikeDate() != null && like.getLikeDate().isAfter(oneMonthAgo))
+                        .count();
+
+                return Long.compare(likes2, likes1);
+            });
+
+            List<PostPreviewDTO> resultPosts = new ArrayList<>();
+            for (Post post : posts) {
+                String previewUrl = s3Service.generatePresignedPreviewUrl(post.getS3Key());
+                resultPosts.add(PostPreviewDTO.fromPost(post, previewUrl));
+            }
+
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            logger.error("Error while sorting by likes: " + e.getMessage());
+            return ResponseEntity.internalServerError().body("Something went wrong while sorting by likes");
+        }
+    }
+
+    @GetMapping("getPostsOfCurrentUser")
+    public ResponseEntity<?> getPostsOfCurrentUser(@RequestHeader String token) {
+        TokenValidationResult result = jwtUtil.validateTokenFull(token);
+        if (!result.isValid()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Invalid token");
+        }
+
+        try {
+            Optional<User> opt_user = userRepository.findByLogin(jwtUtil.extractUsername(token));
+            if(opt_user.isEmpty()) return ResponseEntity.badRequest().body("Invalid token");
+            else{
+                List<Post> posts = postRepository.getPostsByUser(opt_user.get());
+                List<PostPreviewDTO> resultPosts = new ArrayList<>();
+                for (Post post : posts) {
+                    String previewUrl = s3Service.generatePresignedPreviewUrl(post.getS3Key());
+                    resultPosts.add(PostPreviewDTO.fromPost(post, previewUrl));
+                }
+                return ResponseEntity.ok(resultPosts);
+            }
+        }
+        catch (Exception e) {
+            logger.error("Error while getting posts: " + e.getMessage());
+            return ResponseEntity.internalServerError().body("Something went wrong while getting posts");
         }
     }
 

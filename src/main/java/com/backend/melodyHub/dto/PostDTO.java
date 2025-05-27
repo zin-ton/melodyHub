@@ -4,6 +4,7 @@ import com.backend.melodyHub.model.Category;
 import com.backend.melodyHub.model.Post;
 import com.backend.melodyHub.model.User;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 
@@ -15,14 +16,16 @@ public class PostDTO {
     private String leadsheetKey;
     private List<Integer> categories;
     private String author;
+    private LocalDateTime dateTime;
 
-    public PostDTO(Integer id, String s3Key, String description, String name, String leadsheet, List<Integer> categories, String author) {
+    public PostDTO(Integer id, String s3Key, String description, String name, String leadsheet, List<Integer> categories, String author, LocalDateTime dateTime) {
         this.s3Key = s3Key;
         this.description = description;
         this.name = name;
         this.leadsheetKey = leadsheet;
         this.categories = categories;
         this.author = author;
+        this.dateTime = dateTime;
     }
 
     public Post toPost(User user, Set<Category> categories) {
@@ -44,7 +47,8 @@ public class PostDTO {
                 post.getName(),
                 post.getLeadsheetKey(),
                 post.getCategories().stream().map(Category::getId).toList(),
-                post.getUser().getLogin()
+                post.getUser().getLogin(),
+                post.getDateTime()
         );
     }
 
@@ -103,5 +107,13 @@ public class PostDTO {
 
     public void setAuthor(String author) {
         this.author = author;
+    }
+
+    public LocalDateTime getDateTime() {
+        return dateTime;
+    }
+
+    public void setDateTime(LocalDateTime dateTime) {
+        this.dateTime = dateTime;
     }
 }

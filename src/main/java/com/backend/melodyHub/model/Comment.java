@@ -2,6 +2,9 @@ package com.backend.melodyHub.model;
 
 import jakarta.persistence.*;
 
+import java.time.LocalDateTime;
+import java.util.List;
+
 @Entity
 @Table(name = "comment")
 public class Comment {
@@ -23,6 +26,13 @@ public class Comment {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "reply_to")
     private Comment replyTo;
+
+    @OneToMany(mappedBy = "replyTo")
+    private List<Comment> replies;
+
+
+    @Column(name = "date_time", nullable = false, columnDefinition = "timestamp")
+    private LocalDateTime dateTime;
 
     public Integer getId() {
         return id;
@@ -62,5 +72,21 @@ public class Comment {
 
     public void setReplyTo(Comment replyTo) {
         this.replyTo = replyTo;
+    }
+
+    public LocalDateTime getDateTime() {
+        return dateTime;
+    }
+
+    public void setDateTime(LocalDateTime dateTime) {
+        this.dateTime = dateTime;
+    }
+
+    public List<Comment> getReplies() {
+        return replies;
+    }
+
+    public void setReplies(List<Comment> replies) {
+        this.replies = replies;
     }
 }

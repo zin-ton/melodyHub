@@ -16,6 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -159,5 +160,76 @@ public class CommentController {
             return ResponseEntity.badRequest().body("Something went wrong");
         }
     }
+
+    @Transactional
+    @GetMapping("getSortedCommments")
+    public ResponseEntity<?> getSortedComments(@RequestHeader String token, @RequestParam Integer postId) {
+        TokenValidationResult result = jwtUtil.validateTokenFull(token);
+        if (!result.isValid())
+            return ResponseEntity.badRequest().body(result.getErrorMessage().orElse("Invalid token"));
+
+        try {
+            Optional<Post> opt_post = postRepository.findById(postId);
+            if (opt_post.isEmpty()) return ResponseEntity.badRequest().body("Post not found");
+
+            Optional<User> opt_user = userRepository.findByLogin(jwtUtil.extractUsername(token));
+            if (opt_user.isEmpty()) return ResponseEntity.badRequest().body("User not found");
+
+            Post post = opt_post.get();
+            User currentUser = opt_user.get();
+            User postOwner = post.getUser();
+
+            List<Comment> allComments = commentRepository.getCommentsByPost(post);
+
+            List<Comment> topLevelComments = allComments.stream()
+                    .filter(c -> c.getReplyTo() == null)
+                    .toList();
+
+            List<Comment> postOwnerComments = new ArrayList<>();
+            List<Comment> currentUserComments = new ArrayList<>();
+            List<Comment> otherComments = new ArrayList<>();
+
+            for (Comment comment : topLevelComments) {
+                if (comment.getUser().getId().equals(postOwner.getId())) {
+                    postOwnerComments.add(comment);
+                } else if (comment.getUser().getId().equals(currentUser.getId())) {
+                    currentUserComments.add(comment);
+                } else {
+                    otherComments.add(comment);
+                }
+            }
+
+            otherComments.sort((c1, c2) -> getLastReplyDate(c2).compareTo(getLastReplyDate(c1)));
+
+            List<Comment> sortedComments = new ArrayList<>();
+            sortedComments.addAll(postOwnerComments);
+            sortedComments.addAll(currentUserComments);
+            sortedComments.addAll(otherComments);
+
+            List<CommentDTO> resultList = sortedComments.stream()
+                    .map(comment -> CommentDTO.toCommentDTO(comment, comment.getUser().getLogin()))
+                    .toList();
+
+            return ResponseEntity.ok(resultList);
+        } catch (Exception e) {
+            logger.error(e.getMessage(), e);
+            return ResponseEntity.badRequest().body("Something went wrong");
+        }
+    }
+
+    private LocalDateTime getLastReplyDate(Comment comment) {
+        LocalDateTime latest = comment.getDateTime();
+        if (comment.getReplies() != null && !comment.getReplies().isEmpty()) {
+            for (Comment reply : comment.getReplies()) {
+                LocalDateTime replyDate = getLastReplyDate(reply);
+                if (replyDate.isAfter(latest)) {
+                    latest = replyDate;
+                }
+            }
+        }
+        return latest;
+    }
+
+
 
 }

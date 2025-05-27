@@ -5,6 +5,8 @@ import com.backend.melodyHub.model.Post;
 import com.backend.melodyHub.model.User;
 import jakarta.annotation.Nullable;
 
+import java.time.LocalDateTime;
+
 public class CommentDTO {
     private Integer id;
     private String content;
@@ -12,6 +14,7 @@ public class CommentDTO {
     private Integer replyToId;
     private Integer userId;
     private String userName;
+    private LocalDateTime dateTime;
 
     public static CommentDTO toCommentDTO(Comment comment, String userName) {
         CommentDTO commentDTO = new CommentDTO();
@@ -23,6 +26,7 @@ public class CommentDTO {
         }
         commentDTO.setUserId(comment.getUser().getId());
         commentDTO.setUserName(userName);
+        commentDTO.setDateTime(comment.getDateTime());
         return commentDTO;
     }
 
@@ -83,5 +87,13 @@ public class CommentDTO {
 
     public void setUserName(String userName) {
         this.userName = userName;
+    }
+
+    public LocalDateTime getDateTime() {
+        return dateTime;
+    }
+
+    public void setDateTime(LocalDateTime dateTime) {
+        this.dateTime = dateTime;
     }
 }

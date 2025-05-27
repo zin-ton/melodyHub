@@ -3,6 +3,7 @@ package com.backend.melodyHub.controller;
 import com.backend.melodyHub.component.JwtUtil;
 import com.backend.melodyHub.component.PasswordHasher;
 import com.backend.melodyHub.component.TokenValidationResult;
+import com.backend.melodyHub.dto.UserInfoDTO;
 import com.backend.melodyHub.dto.UserNoPasswordDTO;
 import com.backend.melodyHub.model.User;
 import com.backend.melodyHub.repository.CommentRepository;
@@ -68,13 +69,13 @@ public class UserController {
         TokenValidationResult result = jwtUtil.validateTokenFull(token);
         if (!result.isValid())
             return ResponseEntity.badRequest().body(result.getErrorMessage().orElse("Invalid token"));
-        Optional<User> user = userRepository.findById(userNoPasswordDTO.getId());
+        Optional<User> user = userRepository.findByLogin(jwtUtil.extractUsername(token));
         if (user.isEmpty()) return ResponseEntity.notFound().build();
         Optional<User> verifyLogin = userRepository.findByLogin(userNoPasswordDTO.getLogin());
         Optional<User> verifyEmail = userRepository.findByEmail(userNoPasswordDTO.getEmail());
-        if (verifyLogin.isPresent() && !Objects.equals(userNoPasswordDTO.getId(), verifyLogin.get().getId()))
+        if (verifyLogin.isPresent() && !Objects.equals(user.get().getId(), verifyLogin.get().getId()))
             return ResponseEntity.badRequest().body("This login is already used");
-        if (verifyEmail.isPresent() && !Objects.equals(userNoPasswordDTO.getId(), verifyEmail.get().getId()))
+        if (verifyEmail.isPresent() && !Objects.equals(user.get().getId(), verifyEmail.get().getId()))
             return ResponseEntity.badRequest().body("This email is already used");
         User userToEdit = user.get();
         userToEdit.setEmail(userNoPasswordDTO.getEmail());
@@ -111,6 +112,25 @@ public class UserController {
             userRepository.flush();
             return ResponseEntity.ok().build();
         } catch (Exception e) {
+            logger.error(e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Unexpected error occurred.");
+        }
+    }
+
+    @GetMapping("getUserInfo")
+    public ResponseEntity<?> getUserInfo(@RequestHeader String token) {
+        TokenValidationResult result = jwtUtil.validateTokenFull(token);
+        if(!result.isValid())
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("invalid token");
+        try{
+            Optional<User> opt_user = userRepository.findByLogin(jwtUtil.extractUsername(token));
+            if(!opt_user.isPresent())
+                return ResponseEntity.notFound().build();
+            User user = opt_user.get();
+            UserInfoDTO userInfo = new UserInfoDTO(user.getId(), user.getEmail(), user.getFirstName(), user.getLastName(), user.getLogin());
+            return ResponseEntity.ok(userInfo);
+        }
+        catch (Exception e){
             logger.error(e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Unexpected error occurred.");
         }

@@ -2,6 +2,8 @@ package com.backend.melodyHub.model;
 
 import jakarta.persistence.*;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "\"like\"")
 public class Like {
@@ -16,6 +18,8 @@ public class Like {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "post_id", nullable = false)
     private Post post;
+
+    private LocalDateTime likeDate;
 
     public Like() {
     }
@@ -42,5 +46,13 @@ public class Like {
 
     public void setPost(Post post) {
         this.post = post;
+    }
+
+    public LocalDateTime getLikeDate() {
+        return likeDate;
+    }
+
+    public void setLikeDate(LocalDateTime likeDate) {
+        this.likeDate = likeDate;
     }
 }

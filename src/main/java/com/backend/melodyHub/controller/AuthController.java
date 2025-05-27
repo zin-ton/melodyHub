@@ -2,7 +2,9 @@ package com.backend.melodyHub.controller;
 
 import com.backend.melodyHub.component.JwtUtil;
 import com.backend.melodyHub.component.PasswordHasher;
+import com.backend.melodyHub.component.TokenValidationResult;
 import com.backend.melodyHub.dto.LoginDTO;
+import com.backend.melodyHub.dto.UserLoggedInDTO;
 import com.backend.melodyHub.model.User;
 import com.backend.melodyHub.dto.UserDTO;
 import com.backend.melodyHub.repository.UserRepository;
@@ -14,6 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Optional;
@@ -40,7 +43,8 @@ public class AuthController {
                 Optional<User> userFromDb = userRepository.findByLogin(loginRequest.getLogin());
                 if (userFromDb.isEmpty()) { return ResponseEntity.badRequest().body("username or password is not correct");}
                 if(PasswordHasher.checkPassword(loginRequest.getPassword(), userFromDb.get().getPassword())) {
-                    return ResponseEntity.ok(jwtUtil.generateToken(userFromDb.get()));
+                    UserLoggedInDTO user = new UserLoggedInDTO(jwtUtil.generateToken(userFromDb.get()), userFromDb.get().getLogin());
+                    return ResponseEntity.ok(user);
                 }
                 return ResponseEntity.badRequest().body("username or password is not correct");
             } catch (Exception e) {
@@ -78,6 +82,20 @@ public class AuthController {
                 return ResponseEntity.internalServerError().body("An error occurred. Please try again later.");
             }
         }
+    }
 
+    @PostMapping("checkPassword")
+    public ResponseEntity<?> checkPossword(@RequestHeader String token, @RequestBody String password) {
+        TokenValidationResult result = jwtUtil.validateTokenFull(token);
+        if (!result.isValid())
+            return ResponseEntity.badRequest().body(result.getErrorMessage().orElse("Invalid token"));
+        String username = jwtUtil.extractUsername(token);
+        Optional<User> opt_user = userRepository.findByLogin(username);
+        if(opt_user.isEmpty()) return ResponseEntity.badRequest().body("User not found");
+        else{
+            User user = opt_user.get();
+            if(!PasswordHasher.checkPassword(password, user.getPassword())) return ResponseEntity.ok(Boolean.FALSE);
+            else return ResponseEntity.ok(Boolean.TRUE);
+        }
     }
 }

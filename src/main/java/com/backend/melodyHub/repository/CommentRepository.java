@@ -20,4 +20,6 @@ public interface CommentRepository extends JpaRepository<Comment, Integer> {
     @Transactional
     @Query("UPDATE Comment c SET c.user = (SELECT u FROM User u WHERE u.login = 'deleted_user') WHERE c.user = :originalUser")
     void reassignCommentsToDeletedUser(User originalUser);
+
+    List<Comment> getCommentsByPostAndUser(Post post, User user);
 }
