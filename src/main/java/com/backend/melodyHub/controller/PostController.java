@@ -6,14 +6,8 @@ import com.backend.melodyHub.component.TokenValidationResult;
 import com.backend.melodyHub.dto.PostDTO;
 import com.backend.melodyHub.dto.PostPageDTO;
 import com.backend.melodyHub.dto.PostPreviewDTO;
-import com.backend.melodyHub.model.Category;
-import com.backend.melodyHub.model.Post;
-import com.backend.melodyHub.model.Saved;
-import com.backend.melodyHub.model.User;
-import com.backend.melodyHub.repository.CategoryRepository;
-import com.backend.melodyHub.repository.PostRepository;
-import com.backend.melodyHub.repository.SavedRepository;
-import com.backend.melodyHub.repository.UserRepository;
+import com.backend.melodyHub.model.*;
+import com.backend.melodyHub.repository.*;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
@@ -24,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @RestController
 @Tag(name = "Post Controller")
@@ -35,14 +30,16 @@ public class PostController {
     private final CategoryRepository categoryRepository;
     private final S3Service s3Service;
     private final SavedRepository savedRepository;
+    private final PostToCategoryRepository postToCategoryRepository;
 
-    public PostController(PostRepository postRepository, JwtUtil jwtUtil, UserRepository userRepository, CategoryRepository categoryRepository, S3Service s3Service, SavedRepository savedRepository) {
+    public PostController(PostRepository postRepository, JwtUtil jwtUtil, UserRepository userRepository, CategoryRepository categoryRepository, S3Service s3Service, SavedRepository savedRepository, PostToCategoryRepository postToCategoryRepository) {
         this.postRepository = postRepository;
         this.jwtUtil = jwtUtil;
         this.userRepository = userRepository;
         this.categoryRepository = categoryRepository;
         this.savedRepository = savedRepository;
         this.s3Service = s3Service;
+        this.postToCategoryRepository = postToCategoryRepository;
     }
 
     @DeleteMapping("/deletePost")
@@ -73,94 +70,114 @@ public class PostController {
         }
     }
 
-    @GetMapping("/postsByCategory")
-    public ResponseEntity<?> getPostByCategory(@RequestHeader String token, @RequestParam List<Integer> filter) {
-        TokenValidationResult result = jwtUtil.validateTokenFull(token);
-        if (!result.isValid())
-            return ResponseEntity.badRequest().body(result.getErrorMessage().orElse("Invalid token"));
-        if (filter.isEmpty()) {
-            List<PostPreviewDTO> returnPosts = new ArrayList<>();
-            List<Post> posts = postRepository.findAll();
-            for (Post post : posts) {
-                String previewUrl = s3Service.generatePresignedPreviewUrl(post.getS3Key());
-                returnPosts.add(PostPreviewDTO.fromPost(post, previewUrl));
-            }
-            return ResponseEntity.ok(returnPosts);
-        }
-        try {
-            Set<Category> categories = new HashSet<>();
-            for (Integer categoryId : filter) {
-                if (!categoryRepository.existsById(categoryId)) {
-                    return ResponseEntity.badRequest().body("Category with id " + categoryId + " does not exist");
-                }
-                Optional<Category> category = categoryRepository.findById(categoryId);
-                category.ifPresent(categories::add);
-            }
-            List<Post> posts = postRepository.findPostsWithAllCategories(categories, categories.size());
-            List<PostPreviewDTO> returnPosts = new ArrayList<>();
-            for (Post post : posts) {
-                String previewUrl = s3Service.generatePresignedPreviewUrl(post.getS3Key());
-                returnPosts.add(PostPreviewDTO.fromPost(post, previewUrl));
-            }
-            if (returnPosts.isEmpty()) {
-                return ResponseEntity.ok(Collections.emptyList());
-            }
-            return ResponseEntity.ok(returnPosts);
-        } catch (Exception e) {
-            logger.error(e.getMessage());
-            return ResponseEntity.internalServerError().body("An error occurred while trying to get the posts");
-        }
-    }
 
     @GetMapping("/getPosts")
-    public ResponseEntity<?> getPosts(@RequestHeader String token) {
+    public ResponseEntity<?> getPosts(
+            @RequestHeader String token,
+            @RequestParam(required = false) Integer userId,
+            @RequestParam(required = false) List<Integer> categoryIds,
+            @RequestParam(required = false) String sort) {
         TokenValidationResult result = jwtUtil.validateTokenFull(token);
-        if (!result.isValid())
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You do not have permission to access this resource");
+        if (!result.isValid()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Invalid token");
+        }
+
         try {
             List<Post> posts = postRepository.findAll();
-            List<PostPreviewDTO> returnPosts = new ArrayList<>();
-            for (Post post : posts) {
-                String previewUrl = s3Service.generatePresignedPreviewUrl(post.getS3Key());
-                returnPosts.add(PostPreviewDTO.fromPost(post, previewUrl));
+
+            // Filter by userId
+            if (userId != null) {
+                Optional<User> user = userRepository.findById(userId);
+                if (user.isEmpty()) {
+                    return ResponseEntity.badRequest().body("User not found");
+                }
+                posts = posts.stream()
+                        .filter(post -> post.getUser().getId().equals(userId))
+                        .toList();
             }
-            if (returnPosts.isEmpty()) {
-                return ResponseEntity.ok(Collections.emptyList());
+
+            // Filter by categories
+            if (categoryIds != null && !categoryIds.isEmpty()) {
+                posts = posts.stream()
+                        .filter(post -> {
+                            Set<Integer> postCategoryIds = post.getPostToCategories().stream()
+                                    .map(postToCategory -> postToCategory.getCategory().getId())
+                                    .collect(Collectors.toSet());
+                            return postCategoryIds.containsAll(categoryIds);
+                        })
+                        .toList();
             }
-            return ResponseEntity.ok(returnPosts);
+
+            // Sort posts
+            if ("date".equalsIgnoreCase(sort)) {
+                posts.sort((p1, p2) -> p2.getDateTime().compareTo(p1.getDateTime()));
+            } else if ("likes".equalsIgnoreCase(sort)) {
+                LocalDateTime oneMonthAgo = LocalDateTime.now().minusMonths(1);
+                posts.sort((p1, p2) -> {
+                    long likes1 = p1.getLikes().stream()
+                            .filter(like -> like.getLikeDate() != null && like.getLikeDate().isAfter(oneMonthAgo))
+                            .count();
+                    long likes2 = p2.getLikes().stream()
+                            .filter(like -> like.getLikeDate() != null && like.getLikeDate().isAfter(oneMonthAgo))
+                            .count();
+                    return Long.compare(likes2, likes1);
+                });
+            }
+
+            // Convert to DTOs
+            List<PostPreviewDTO> resultPosts = posts.stream()
+                    .map(post -> PostPreviewDTO.fromPost(post, s3Service.generatePresignedPreviewUrl(post.getS3Key())))
+                    .toList();
+
+            return ResponseEntity.ok(resultPosts);
         } catch (Exception e) {
-            logger.error(e.getMessage());
-            return ResponseEntity.internalServerError().body("An error occurred while trying to get the posts");
+            logger.error("Error while fetching posts: " + e.getMessage());
+            return ResponseEntity.internalServerError().body("Something went wrong while fetching posts");
         }
     }
 
+    @Transactional
     @PostMapping("/addPost")
     public ResponseEntity<?> addPost(@RequestBody PostDTO post, @RequestHeader String token) {
         TokenValidationResult result = jwtUtil.validateTokenFull(token);
-        if (!result.isValid())
+        if (!result.isValid()) {
             return ResponseEntity.badRequest().body(result.getErrorMessage().orElse("Invalid token"));
+        }
+
         String username = jwtUtil.extractUsername(token);
         try {
             Optional<User> user = userRepository.findByLogin(username);
-            if (user.isPresent()) {
-                Post newPost;
-                Set<Category> categories = new HashSet<>();
-                for (Integer categoryId : post.getCategories()) {
-                    if (!categoryRepository.existsById(categoryId)) {
-                        return ResponseEntity.badRequest().body("Category with id " + categoryId + " does not exist");
-                    }
-                    Optional<Category> category = categoryRepository.findById(categoryId);
-                    category.ifPresent(categories::add);
-                }
-                newPost = post.toPost(user.get(), categories);
-                postRepository.save(newPost);
-                return ResponseEntity.ok("Post added successfully");
-            } else {
+            if (user.isEmpty()) {
                 return ResponseEntity.badRequest().body("User not found");
             }
+
+            // Validate categories
+            Set<PostToCategory> postToCategories = new HashSet<>();
+            for (Integer categoryId : post.getCategories()) {
+                Optional<Category> category = categoryRepository.findById(categoryId);
+                if (category.isEmpty()) {
+                    return ResponseEntity.badRequest().body("Category with id " + categoryId + " does not exist");
+                }
+                PostToCategory postToCategory = new PostToCategory();
+                postToCategory.setCategory(category.get());
+                postToCategories.add(postToCategory);
+            }
+
+            // Save the post
+            Post newPost = post.toPost(user.get());
+            newPost.setDateTime(LocalDateTime.now());
+            newPost = postRepository.save(newPost);
+
+            // Associate categories
+            for (PostToCategory postToCategory : postToCategories) {
+                postToCategory.setPost(newPost);
+            }
+            postToCategoryRepository.saveAll(postToCategories);
+
+            return ResponseEntity.ok("Post added successfully");
         } catch (Exception e) {
-            logger.error(e.getMessage());
-            return ResponseEntity.internalServerError().body("An error occurred while trying to add the posts");
+            logger.error("Error occurred while adding post: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().body("An error occurred while trying to add the post");
         }
     }
 
@@ -183,15 +200,22 @@ public class PostController {
                     postToEdit.setDescription(post.getDescription());
                     postToEdit.setName(post.getName());
                     postToEdit.setLeadsheetKey(post.getLeadsheetKey());
-                    Set<Category> categories = new HashSet<>();
+
+                    // Update categories
+                    postToCategoryRepository.deleteAll(postToEdit.getPostToCategories());
+                    Set<PostToCategory> postToCategories = new HashSet<>();
                     for (Integer categoryId : post.getCategories()) {
-                        if (!categoryRepository.existsById(categoryId)) {
+                        Optional<Category> category = categoryRepository.findById(categoryId);
+                        if (category.isEmpty()) {
                             return ResponseEntity.badRequest().body("Category with id " + categoryId + " does not exist");
                         }
-                        Optional<Category> category = categoryRepository.findById(categoryId);
-                        category.ifPresent(categories::add);
+                        PostToCategory postToCategory = new PostToCategory();
+                        postToCategory.setPost(postToEdit);
+                        postToCategory.setCategory(category.get());
+                        postToCategories.add(postToCategory);
                     }
-                    postToEdit.setCategories(categories);
+                    postToCategoryRepository.saveAll(postToCategories);
+
                     postRepository.save(postToEdit);
                     return ResponseEntity.ok("Post edited successfully");
                 } else {
@@ -324,106 +348,6 @@ public class PostController {
         } catch (Exception e) {
             logger.error(e.getMessage());
             return ResponseEntity.internalServerError().body("something went wrong");
-        }
-    }
-
-    @GetMapping("/getPostsSortedByDateAndLikes")
-    public ResponseEntity<?> getPostsSortedByDateAndLikes(@RequestHeader String token) {
-        TokenValidationResult result = jwtUtil.validateTokenFull(token);
-        if (!result.isValid()) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Invalid token");
-        }
-
-        try {
-            List<Post> posts = postRepository.findAll();
-            LocalDateTime oneMonthAgo = LocalDateTime.now().minusMonths(1);
-            posts.sort((p1, p2) -> {
-                long p1Likes = p1.getLikes().stream()
-                        .filter(like -> like.getLikeDate() != null && like.getLikeDate().isAfter(oneMonthAgo))
-                        .count();
-
-                long p2Likes = p2.getLikes().stream()
-                        .filter(like -> like.getLikeDate() != null && like.getLikeDate().isAfter(oneMonthAgo))
-                        .count();
-
-                if (p1Likes != p2Likes) {
-                    return Long.compare(p2Likes, p1Likes);
-                } else {
-                    return p2.getDateTime().compareTo(p1.getDateTime());
-                }
-            });
-
-            List<PostPreviewDTO> sortedPostPreviews = new ArrayList<>();
-            for (Post post : posts) {
-                String previewUrl = s3Service.generatePresignedPreviewUrl(post.getS3Key());
-                sortedPostPreviews.add(PostPreviewDTO.fromPost(post, previewUrl));
-            }
-
-            return ResponseEntity.ok(sortedPostPreviews);
-        } catch (Exception e) {
-            logger.error("Error while sorting posts: " + e.getMessage());
-            return ResponseEntity.internalServerError().body("Something went wrong while sorting posts");
-        }
-    }
-
-    @GetMapping("/getPostsSortedByDate")
-    public ResponseEntity<?> getPostsSortedByDate(@RequestHeader String token) {
-        TokenValidationResult result = jwtUtil.validateTokenFull(token);
-        if (!result.isValid()) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Invalid token");
-        }
-
-        try {
-            List<Post> posts = postRepository.findAll();
-
-            posts.sort((p1, p2) -> p2.getDateTime().compareTo(p1.getDateTime()));
-
-            List<PostPreviewDTO> resultPosts = new ArrayList<>();
-            for (Post post : posts) {
-                String previewUrl = s3Service.generatePresignedPreviewUrl(post.getS3Key());
-                resultPosts.add(PostPreviewDTO.fromPost(post, previewUrl));
-            }
-
-            return ResponseEntity.ok(result);
-        } catch (Exception e) {
-            logger.error("Error while sorting by date: " + e.getMessage());
-            return ResponseEntity.internalServerError().body("Something went wrong while sorting by date");
-        }
-    }
-
-    @GetMapping("/getPostsSortedByLikes")
-    public ResponseEntity<?> getPostsSortedByLikes(@RequestHeader String token) {
-        TokenValidationResult result = jwtUtil.validateTokenFull(token);
-        if (!result.isValid()) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Invalid token");
-        }
-
-        try {
-            List<Post> posts = postRepository.findAll();
-            LocalDateTime oneMonthAgo = LocalDateTime.now().minusMonths(1);
-
-            posts.sort((p1, p2) -> {
-                long likes1 = p1.getLikes().stream()
-                        .filter(like -> like.getLikeDate() != null && like.getLikeDate().isAfter(oneMonthAgo))
-                        .count();
-
-                long likes2 = p2.getLikes().stream()
-                        .filter(like -> like.getLikeDate() != null && like.getLikeDate().isAfter(oneMonthAgo))
-                        .count();
-
-                return Long.compare(likes2, likes1);
-            });
-
-            List<PostPreviewDTO> resultPosts = new ArrayList<>();
-            for (Post post : posts) {
-                String previewUrl = s3Service.generatePresignedPreviewUrl(post.getS3Key());
-                resultPosts.add(PostPreviewDTO.fromPost(post, previewUrl));
-            }
-
-            return ResponseEntity.ok(result);
-        } catch (Exception e) {
-            logger.error("Error while sorting by likes: " + e.getMessage());
-            return ResponseEntity.internalServerError().body("Something went wrong while sorting by likes");
         }
     }
 

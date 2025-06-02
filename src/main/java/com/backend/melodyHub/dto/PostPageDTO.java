@@ -2,9 +2,11 @@ package com.backend.melodyHub.dto;
 
 import com.backend.melodyHub.model.Category;
 import com.backend.melodyHub.model.Post;
+import com.backend.melodyHub.model.PostToCategory;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 public class PostPageDTO {
     private final Integer id;
@@ -16,7 +18,7 @@ public class PostPageDTO {
     private final String name;
     private final String leadsheetUrl;
 
-    public PostPageDTO(Integer id, String previewUrl, String authorName, List<Integer> categories, String description, String postUrl, String name, String leadsheetKey) {
+    public PostPageDTO(Integer id, String previewUrl, String authorName, List<Integer> categories, String description, String postUrl, String name, String leadsheetUrl) {
         this.id = id;
         this.previewUrl = previewUrl;
         this.authorName = authorName;
@@ -24,12 +26,25 @@ public class PostPageDTO {
         this.description = description;
         this.postUrl = postUrl;
         this.name = name;
-        this.leadsheetUrl = leadsheetKey;
+        this.leadsheetUrl = leadsheetUrl;
     }
 
     public static PostPageDTO fromPost(Post post, String previewUrl, String postUrl, String leadsheetUrl) {
-        return new PostPageDTO(post.getId(), previewUrl, String.valueOf(Optional.ofNullable(post.getUser().getLogin())), post.getCategories().stream().map(Category::getId).toList(), post.getDescription(), postUrl, post.getName(),
-                leadsheetUrl);
+        List<Integer> categoryIds = post.getPostToCategories().stream()
+                .map(PostToCategory::getCategory)
+                .map(category -> category.getId())
+                .collect(Collectors.toList());
+
+        return new PostPageDTO(
+                post.getId(),
+                previewUrl,
+                Optional.ofNullable(post.getUser().getLogin()).orElse(""),
+                categoryIds,
+                post.getDescription(),
+                postUrl,
+                post.getName(),
+                leadsheetUrl
+        );
     }
 
     public Integer getId() {

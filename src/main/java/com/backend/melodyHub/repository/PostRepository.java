@@ -12,12 +12,5 @@ import java.util.Set;
 
 public interface PostRepository extends JpaRepository<Post, Integer> {
 
-    @Query("SELECT p FROM Post p JOIN p.categories c " +
-            "WHERE c IN :categories " +
-            "GROUP BY p.id " +
-            "HAVING COUNT(DISTINCT c.id) = :categoryCount")
-    List<Post> findPostsWithAllCategories(@Param("categories") Set<Category> categories,
-                                          @Param("categoryCount") long categoryCount);
-
     List<Post> getPostsByUser(User user);
 }

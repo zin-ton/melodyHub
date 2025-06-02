@@ -2,11 +2,14 @@ package com.backend.melodyHub.dto;
 
 import com.backend.melodyHub.model.Category;
 import com.backend.melodyHub.model.Post;
+import com.backend.melodyHub.model.PostToCategory;
 import com.backend.melodyHub.model.User;
+import jakarta.annotation.Nullable;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class PostDTO {
     private Integer id;
@@ -16,9 +19,11 @@ public class PostDTO {
     private String leadsheetKey;
     private List<Integer> categories;
     private String author;
+    @Nullable
     private LocalDateTime dateTime;
 
     public PostDTO(Integer id, String s3Key, String description, String name, String leadsheet, List<Integer> categories, String author, LocalDateTime dateTime) {
+        this.id = id;
         this.s3Key = s3Key;
         this.description = description;
         this.name = name;
@@ -28,30 +33,35 @@ public class PostDTO {
         this.dateTime = dateTime;
     }
 
-    public Post toPost(User user, Set<Category> categories) {
+    public Post toPost(User user) {
         Post post = new Post();
         post.setS3Key(this.s3Key);
         post.setDescription(this.description);
         post.setName(this.name);
         post.setLeadsheetKey(this.leadsheetKey);
         post.setUser(user);
-        post.setCategories(categories);
         return post;
     }
 
     public static PostDTO fromPost(Post post) {
+        List<Integer> categoryIds = post.getPostToCategories().stream()
+                .map(PostToCategory::getCategory)
+                .map(Category::getId)
+                .collect(Collectors.toList());
+
         return new PostDTO(
                 post.getId(),
                 post.getS3Key(),
                 post.getDescription(),
                 post.getName(),
                 post.getLeadsheetKey(),
-                post.getCategories().stream().map(Category::getId).toList(),
+                categoryIds,
                 post.getUser().getLogin(),
                 post.getDateTime()
         );
     }
 
+    // Getters and Setters
     public Integer getId() {
         return id;
     }
@@ -91,7 +101,6 @@ public class PostDTO {
     public void setLeadsheetKey(String leadsheetKey) {
         this.leadsheetKey = leadsheetKey;
     }
-
 
     public List<Integer> getCategories() {
         return categories;

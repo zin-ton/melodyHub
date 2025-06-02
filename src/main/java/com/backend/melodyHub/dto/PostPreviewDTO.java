@@ -2,8 +2,10 @@ package com.backend.melodyHub.dto;
 
 import com.backend.melodyHub.model.Category;
 import com.backend.melodyHub.model.Post;
+import com.backend.melodyHub.model.PostToCategory;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class PostPreviewDTO {
     private final Integer id;
@@ -21,7 +23,18 @@ public class PostPreviewDTO {
     }
 
     public static PostPreviewDTO fromPost(Post post, String previewUrl) {
-        return new PostPreviewDTO(post.getId(), previewUrl, post.getName(), post.getUser().getLogin(), post.getCategories().stream().map(Category::getId).toList());
+        List<Integer> categoryIds = post.getPostToCategories().stream()
+                .map(PostToCategory::getCategory)
+                .map(category -> category.getId())
+                .collect(Collectors.toList());
+
+        return new PostPreviewDTO(
+                post.getId(),
+                previewUrl,
+                post.getName(),
+                post.getUser().getLogin(),
+                categoryIds
+        );
     }
 
     public Integer getId() {

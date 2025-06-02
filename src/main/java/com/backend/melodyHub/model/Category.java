@@ -16,8 +16,8 @@ public class Category {
     @Column(name = "name", columnDefinition = "text")
     private String name;
 
-    @ManyToMany(mappedBy = "categories", fetch = FetchType.EAGER)
-    private Set<Post> posts = new HashSet<>();
+    @OneToMany(mappedBy = "category", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<PostToCategory> postToCategories = new HashSet<>();
 
     public Integer getId() {
         return id;
@@ -35,11 +35,11 @@ public class Category {
         this.name = name;
     }
 
-    public Set<Post> getPosts() {
-        return posts;
+    public Set<PostToCategory> getPostToCategories() {
+        return postToCategories;
     }
 
-    public void setPosts(Set<Post> posts) {
-        this.posts = posts;
+    public void setPostToCategories(Set<PostToCategory> postToCategories) {
+        this.postToCategories = postToCategories;
     }
 }

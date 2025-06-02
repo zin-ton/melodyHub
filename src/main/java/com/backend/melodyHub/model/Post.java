@@ -35,9 +35,8 @@ public class Post {
     @Column(name = "date_time")
     private LocalDateTime dateTime;
 
-    @ManyToMany(fetch = FetchType.EAGER)
-    @JoinTable(name = "post_to_categories", joinColumns = @JoinColumn(name = "post_id"), inverseJoinColumns = @JoinColumn(name = "category_id"))
-    private Set<Category> categories = new HashSet<>();
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<PostToCategory> postToCategories = new HashSet<>();
 
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Like> likes = new ArrayList<>();
@@ -98,12 +97,12 @@ public class Post {
         this.dateTime = dateTime;
     }
 
-    public Set<Category> getCategories() {
-        return categories;
+    public Set<PostToCategory> getPostToCategories() {
+        return postToCategories;
     }
 
-    public void setCategories(Set<Category> categories) {
-        this.categories = categories;
+    public void setPostToCategories(Set<PostToCategory> postToCategories) {
+        this.postToCategories = postToCategories;
     }
 
     public List<Like> getLikes() {
