@@ -96,7 +96,7 @@ public class PostController {
                 Optional<Category> category = categoryRepository.findById(categoryId);
                 category.ifPresent(categories::add);
             }
-            List<Post> posts = postRepository.findPostsByCategories(categories);
+            List<Post> posts = postRepository.findPostsWithAllCategories(categories, categories.size());
             List<PostPreviewDTO> returnPosts = new ArrayList<>();
             for (Post post : posts) {
                 String previewUrl = s3Service.generatePresignedPreviewUrl(post.getS3Key());
@@ -436,8 +436,8 @@ public class PostController {
 
         try {
             Optional<User> opt_user = userRepository.findByLogin(jwtUtil.extractUsername(token));
-            if(opt_user.isEmpty()) return ResponseEntity.badRequest().body("Invalid token");
-            else{
+            if (opt_user.isEmpty()) return ResponseEntity.badRequest().body("Invalid token");
+            else {
                 List<Post> posts = postRepository.getPostsByUser(opt_user.get());
                 List<PostPreviewDTO> resultPosts = new ArrayList<>();
                 for (Post post : posts) {
@@ -446,8 +446,7 @@ public class PostController {
                 }
                 return ResponseEntity.ok(resultPosts);
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             logger.error("Error while getting posts: " + e.getMessage());
             return ResponseEntity.internalServerError().body("Something went wrong while getting posts");
         }
