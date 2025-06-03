@@ -16,6 +16,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 @RestController
@@ -51,6 +52,7 @@ public class LikeController {
         Like new_like = new Like();
         new_like.setUser(user);
         new_like.setPost(post);
+        new_like.setLikeDate(LocalDateTime.now());
         try {
             likeRepository.save(new_like);
         } catch (Exception e) {

@@ -85,7 +85,7 @@ public class AuthController {
     }
 
     @PostMapping("checkPassword")
-    public ResponseEntity<?> checkPossword(@RequestHeader String token, @RequestBody String password) {
+    public ResponseEntity<?> checkPassword(@RequestHeader String token, @RequestBody String password) {
         TokenValidationResult result = jwtUtil.validateTokenFull(token);
         if (!result.isValid())
             return ResponseEntity.badRequest().body(result.getErrorMessage().orElse("Invalid token"));

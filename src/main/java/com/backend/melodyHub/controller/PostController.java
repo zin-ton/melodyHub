@@ -70,7 +70,7 @@ public class PostController {
         }
     }
 
-
+    @Transactional
     @GetMapping("/getPosts")
     public ResponseEntity<?> getPosts(
             @RequestHeader String token,
@@ -229,7 +229,7 @@ public class PostController {
             return ResponseEntity.internalServerError().body("An error occurred while trying to edit the posts");
         }
     }
-
+    @Transactional
     @GetMapping("/getPost")
     public ResponseEntity<?> getPost(@RequestHeader String token, @RequestParam Integer postId) {
         TokenValidationResult result = jwtUtil.validateTokenFull(token);

@@ -19,6 +19,7 @@ public class Like {
     @JoinColumn(name = "post_id", nullable = false)
     private Post post;
 
+    @Column(name = "date_time", nullable = false, columnDefinition = "timestamp")
     private LocalDateTime likeDate;
 
     public Like() {
