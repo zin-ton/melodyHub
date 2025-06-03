@@ -7,7 +7,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 
 public class UserNoPasswordDTO {
-    @NotNull
+    @Nullable
     private Integer id;
     @NotBlank(message = "Email cannot be empty")
     @Email(message = "Invalid email format")
