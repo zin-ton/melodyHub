@@ -3,6 +3,7 @@ package com.backend.melodyHub.controller;
 import com.backend.melodyHub.component.JwtUtil;
 import com.backend.melodyHub.component.PasswordHasher;
 import com.backend.melodyHub.component.TokenValidationResult;
+import com.backend.melodyHub.dto.UpdatePasswordDTO;
 import com.backend.melodyHub.dto.UserInfoDTO;
 import com.backend.melodyHub.dto.UserNoPasswordDTO;
 import com.backend.melodyHub.model.User;
@@ -134,6 +135,32 @@ public class UserController {
             logger.error(e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Unexpected error occurred.");
         }
+    }
+
+    @PostMapping("updatePassword")
+    public ResponseEntity<?> updatePassword(@RequestHeader String token, @Valid @RequestBody UpdatePasswordDTO updatePasswordDTO){
+        TokenValidationResult result = jwtUtil.validateTokenFull(token);
+        if(!result.isValid())
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("invalid token");
+        String username = jwtUtil.extractUsername(token);
+        try {
+            Optional<User> opt_user = userRepository.findByLogin(username);
+            if(opt_user.isEmpty()) return ResponseEntity.notFound().build();
+
+            User user = opt_user.get();
+            if(!PasswordHasher.checkPassword(updatePasswordDTO.getOldPassword(), user.getPassword())){
+                return ResponseEntity.badRequest().body("Old password is incorrect");
+            }
+            String newPassword = updatePasswordDTO.getNewPassword();
+            user.setPassword(PasswordHasher.hashPassword(newPassword));
+            userRepository.save(user);
+            return ResponseEntity.ok().build();
+        }
+            catch(Exception e){
+            logger.error(e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Unexpected error occurred.");
+        }
+
     }
 
 }
