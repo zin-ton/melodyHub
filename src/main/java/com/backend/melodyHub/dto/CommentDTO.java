@@ -8,12 +8,15 @@ import jakarta.annotation.Nullable;
 import java.time.LocalDateTime;
 
 public class CommentDTO {
+    @Nullable
     private Integer id;
     private String content;
     private Integer postId;
+    @Nullable
     private Integer replyToId;
     private Integer userId;
     private String userName;
+    @Nullable
     private LocalDateTime dateTime;
     private String authorProfilePictureUrl;
 
@@ -37,6 +40,7 @@ public class CommentDTO {
         comment.setContent(this.content);
         comment.setUser(user);
         comment.setPost(post);
+        comment.setDateTime(LocalDateTime.now());
         if (replyTo != null) {
             comment.setReplyTo(replyTo);
         }
