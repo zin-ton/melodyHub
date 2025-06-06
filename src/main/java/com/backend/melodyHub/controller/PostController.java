@@ -76,7 +76,8 @@ public class PostController {
             @RequestHeader String token,
             @RequestParam(required = false) Integer userId,
             @RequestParam(required = false) List<Integer> categoryIds,
-            @RequestParam(required = false) String sort) {
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) String name) {
         TokenValidationResult result = jwtUtil.validateTokenFull(token);
         if (!result.isValid()) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Invalid token");
@@ -105,6 +106,13 @@ public class PostController {
                                     .collect(Collectors.toSet());
                             return postCategoryIds.containsAll(categoryIds);
                         })
+                        .toList();
+            }
+
+            // Filter by name
+            if (name != null && !name.isEmpty()) {
+                posts = posts.stream()
+                        .filter(post -> post.getName().toLowerCase().contains(name.toLowerCase()))
                         .toList();
             }
 

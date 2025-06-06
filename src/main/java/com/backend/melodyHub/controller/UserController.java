@@ -3,6 +3,7 @@ package com.backend.melodyHub.controller;
 import com.backend.melodyHub.component.JwtUtil;
 import com.backend.melodyHub.component.PasswordHasher;
 import com.backend.melodyHub.component.TokenValidationResult;
+import com.backend.melodyHub.dto.OtherUserInfoDTO;
 import com.backend.melodyHub.dto.UpdatePasswordDTO;
 import com.backend.melodyHub.dto.UserInfoDTO;
 import com.backend.melodyHub.dto.UserNoPasswordDTO;
@@ -11,6 +12,7 @@ import com.backend.melodyHub.repository.CommentRepository;
 import com.backend.melodyHub.repository.UserRepository;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -161,6 +163,50 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Unexpected error occurred.");
         }
 
+    }
+
+    @GetMapping("getOtherUserInfo")
+    public ResponseEntity<?> getOtherUserInfo(@RequestHeader String token, @RequestParam String username){
+        TokenValidationResult result = jwtUtil.validateTokenFull(token);
+        if(!result.isValid())
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("invalid token");
+        try{
+            Optional<User> opt_user = userRepository.findByLogin(username);
+            if(!opt_user.isPresent())
+                return ResponseEntity.notFound().build();
+            User user = opt_user.get();
+            OtherUserInfoDTO userInfo = new OtherUserInfoDTO(user.getId(), user.getLogin());
+            return ResponseEntity.ok(userInfo);
+        }
+        catch (Exception e){
+            logger.error(e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Unexpected error occurred.");
+        }
+    }
+
+    @PostMapping("changeEmail")
+    public ResponseEntity<?> changeEmail(@RequestHeader String token, @Email @RequestParam String newEmail) {
+        TokenValidationResult result = jwtUtil.validateTokenFull(token);
+        if (!result.isValid())
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("invalid token");
+        String username = jwtUtil.extractUsername(token);
+        try {
+            Optional<User> opt_user = userRepository.findByLogin(username);
+            if (opt_user.isEmpty()) return ResponseEntity.notFound().build();
+
+            User user = opt_user.get();
+            Optional<User> verifyEmail = userRepository.findByEmail(newEmail);
+            if (verifyEmail.isPresent() && !Objects.equals(user.getId(), verifyEmail.get().getId())) {
+                return ResponseEntity.badRequest().body("This email is already used");
+            }
+
+            user.setEmail(newEmail);
+            userRepository.save(user);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Unexpected error occurred.");
+        }
     }
 
 }
