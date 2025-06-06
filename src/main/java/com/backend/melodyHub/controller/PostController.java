@@ -174,6 +174,7 @@ public class PostController {
             // Save the post
             Post newPost = post.toPost(user.get());
             newPost.setDateTime(LocalDateTime.now());
+            newPost.setS3Key(post.getS3Key());
             newPost = postRepository.save(newPost);
 
             // Associate categories
@@ -250,7 +251,7 @@ public class PostController {
                 if (post.get().getLeadsheetKey() != null) {
                     leadsheetUrl = s3Service.generatePresignedLeadsheetUrl(post.get().getLeadsheetKey());
                 }
-                PostPageDTO returnPost = PostPageDTO.fromPost(post.get(), s3Service.generatePresignedPreviewUrl(post.get().getS3Key()), s3Service.generatePresignedVideoUrl(post.get().getS3Key()), leadsheetUrl);
+                PostPageDTO returnPost = PostPageDTO.fromPost(post.get(), s3Service.generatePresignedPreviewUrl(post.get().getS3Key()), s3Service.generatePresignedVideoUrl(post.get().getS3Key()), leadsheetUrl, s3Service.generatePresignedPreviewUrl(post.get().getUser().getS3Key()));
                 return ResponseEntity.ok(returnPost);
             }
             return ResponseEntity.badRequest().body("Post not found");

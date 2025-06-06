@@ -1,6 +1,7 @@
 package com.backend.melodyHub.dto;
 
 import com.backend.melodyHub.model.User;
+import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

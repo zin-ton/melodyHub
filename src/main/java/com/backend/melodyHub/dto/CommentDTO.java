@@ -15,8 +15,9 @@ public class CommentDTO {
     private Integer userId;
     private String userName;
     private LocalDateTime dateTime;
+    private String authorProfilePictureUrl;
 
-    public static CommentDTO toCommentDTO(Comment comment, String userName) {
+    public static CommentDTO toCommentDTO(Comment comment, String userName, @Nullable String authorProfilePictureUrl) {
         CommentDTO commentDTO = new CommentDTO();
         commentDTO.setId(comment.getId());
         commentDTO.setContent(comment.getContent());
@@ -27,6 +28,7 @@ public class CommentDTO {
         commentDTO.setUserId(comment.getUser().getId());
         commentDTO.setUserName(userName);
         commentDTO.setDateTime(comment.getDateTime());
+        commentDTO.setAuthorProfilePictureUrl(authorProfilePictureUrl);
         return commentDTO;
     }
 
@@ -95,5 +97,13 @@ public class CommentDTO {
 
     public void setDateTime(LocalDateTime dateTime) {
         this.dateTime = dateTime;
+    }
+
+    public String getAuthorProfilePictureUrl() {
+        return authorProfilePictureUrl;
+    }
+
+    public void setAuthorProfilePictureUrl(String authorProfilePictureUrl) {
+        this.authorProfilePictureUrl = authorProfilePictureUrl;
     }
 }

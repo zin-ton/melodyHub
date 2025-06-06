@@ -28,6 +28,9 @@ public class User {
     )
     private String login;
 
+    @Column(name = "s3_key")
+    private String s3Key;
+
     public User() {
     }
 
@@ -77,6 +80,14 @@ public class User {
 
     public void setLogin(String login) {
         this.login = login;
+    }
+
+    public String getS3Key() {
+        return s3Key;
+    }
+
+    public void setS3Key(String s3Key) {
+        this.s3Key = s3Key;
     }
 
 }

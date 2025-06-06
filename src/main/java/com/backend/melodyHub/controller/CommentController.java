@@ -1,6 +1,7 @@
 package com.backend.melodyHub.controller;
 
 import com.backend.melodyHub.component.JwtUtil;
+import com.backend.melodyHub.component.S3Service;
 import com.backend.melodyHub.component.TokenValidationResult;
 import com.backend.melodyHub.dto.CommentDTO;
 import com.backend.melodyHub.model.Comment;
@@ -29,11 +30,13 @@ public class CommentController {
     private final Logger logger = LoggerFactory.getLogger(CommentController.class);
     private final UserRepository userRepository;
     private final PostRepository postRepository;
-    public CommentController(CommentRepository commentRepository, JwtUtil jwtUtil, UserRepository userRepository, PostRepository postRepository) {
+    private final S3Service s3Service;
+    public CommentController(CommentRepository commentRepository, JwtUtil jwtUtil, UserRepository userRepository, PostRepository postRepository, S3Service s3Service) {
         this.commentRepository = commentRepository;
         this.jwtUtil = jwtUtil;
         this.userRepository = userRepository;
         this.postRepository = postRepository;
+        this.s3Service = s3Service;
     }
 
     @PostMapping("addComment")
@@ -124,7 +127,7 @@ public class CommentController {
             else{
                 for (Comment comment : opt_comment) {
 
-                    comments.add(CommentDTO.toCommentDTO(comment, comment.getUser().getLogin()));
+                    comments.add(CommentDTO.toCommentDTO(comment, comment.getUser().getLogin(), s3Service.generatePresignedPreviewUrl(comment.getUser().getS3Key())));
                 }
             }
             return ResponseEntity.ok(comments);
@@ -150,7 +153,7 @@ public class CommentController {
             if (opt_comment.isEmpty()) return ResponseEntity.badRequest().body("Comment not found");
             else{
                 for (Comment comment : opt_comment) {
-                    comments.add(CommentDTO.toCommentDTO(comment, comment.getUser().getLogin()));
+                    comments.add(CommentDTO.toCommentDTO(comment, comment.getUser().getLogin(), s3Service.generatePresignedPreviewUrl(comment.getUser().getS3Key())));
                 }
             }
             return ResponseEntity.ok(comments);
@@ -207,7 +210,7 @@ public class CommentController {
             sortedComments.addAll(otherComments);
 
             List<CommentDTO> resultList = sortedComments.stream()
-                    .map(comment -> CommentDTO.toCommentDTO(comment, comment.getUser().getLogin()))
+                    .map(comment -> CommentDTO.toCommentDTO(comment, comment.getUser().getLogin(), s3Service.generatePresignedPreviewUrl(comment.getUser().getS3Key())))
                     .toList();
 
             return ResponseEntity.ok(resultList);

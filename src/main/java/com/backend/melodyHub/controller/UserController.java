@@ -2,6 +2,7 @@ package com.backend.melodyHub.controller;
 
 import com.backend.melodyHub.component.JwtUtil;
 import com.backend.melodyHub.component.PasswordHasher;
+import com.backend.melodyHub.component.S3Service;
 import com.backend.melodyHub.component.TokenValidationResult;
 import com.backend.melodyHub.dto.OtherUserInfoDTO;
 import com.backend.melodyHub.dto.UpdatePasswordDTO;
@@ -30,12 +31,14 @@ public class UserController {
     private final JwtUtil jwtUtil;
     private final CommentRepository commentRepository;
     private final Logger logger = LoggerFactory.getLogger(UserController.class);
+    private final S3Service s3Service;
 
 
-    public UserController(UserRepository userRepository, JwtUtil jwtUtil, CommentRepository commentRepository) {
+    public UserController(UserRepository userRepository, JwtUtil jwtUtil, CommentRepository commentRepository, S3Service s3Service) {
         this.userRepository = userRepository;
         this.jwtUtil = jwtUtil;
         this.commentRepository = commentRepository;
+        this.s3Service = s3Service;
     }
 
     @GetMapping("/userById")
@@ -130,7 +133,7 @@ public class UserController {
             if(!opt_user.isPresent())
                 return ResponseEntity.notFound().build();
             User user = opt_user.get();
-            UserInfoDTO userInfo = new UserInfoDTO(user.getId(), user.getEmail(), user.getFirstName(), user.getLastName(), user.getLogin());
+            UserInfoDTO userInfo = new UserInfoDTO(user.getId(), user.getEmail(), user.getFirstName(), user.getLastName(), user.getLogin(), s3Service.generatePresignedPreviewUrl(user.getS3Key()));
             return ResponseEntity.ok(userInfo);
         }
         catch (Exception e){
@@ -175,7 +178,7 @@ public class UserController {
             if(!opt_user.isPresent())
                 return ResponseEntity.notFound().build();
             User user = opt_user.get();
-            OtherUserInfoDTO userInfo = new OtherUserInfoDTO(user.getId(), user.getLogin());
+            OtherUserInfoDTO userInfo = new OtherUserInfoDTO(user.getId(), user.getLogin(), s3Service.generatePresignedPreviewUrl(user.getS3Key()));
             return ResponseEntity.ok(userInfo);
         }
         catch (Exception e){
@@ -201,6 +204,26 @@ public class UserController {
             }
 
             user.setEmail(newEmail);
+            userRepository.save(user);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Unexpected error occurred.");
+        }
+    }
+
+    @PostMapping("changeProfilePicture")
+    public ResponseEntity<?> changeProfilePicture(@RequestHeader String token, @RequestParam String s3Key) {
+        TokenValidationResult result = jwtUtil.validateTokenFull(token);
+        if (!result.isValid())
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("invalid token");
+        String username = jwtUtil.extractUsername(token);
+        try {
+            Optional<User> opt_user = userRepository.findByLogin(username);
+            if (opt_user.isEmpty()) return ResponseEntity.notFound().build();
+
+            User user = opt_user.get();
+            user.setS3Key(s3Key);
             userRepository.save(user);
             return ResponseEntity.ok().build();
         } catch (Exception e) {

@@ -6,13 +6,15 @@ public class UserInfoDTO {
     private String firstName;
     private String lastName;
     private String login;
+    private String url;
 
-    public UserInfoDTO(Integer id, String email, String firstName, String lastName, String login) {
+    public UserInfoDTO(Integer id, String email, String firstName, String lastName, String login, String url) {
         this.id = id;
         this.email = email;
         this.firstName = firstName;
         this.lastName = lastName;
         this.login = login;
+        this.url = url;
     }
 
     public Integer getId() {
@@ -54,4 +56,13 @@ public class UserInfoDTO {
     public void setLogin(String login) {
         this.login = login;
     }
+
+    public String getUrl() {
+        return url;
+    }
+
+    public void setUrl(String url) {
+        this.url = url;
+    }
+
 }
