@@ -3,6 +3,7 @@ package com.backend.melodyHub.controller;
 import com.backend.melodyHub.component.JwtUtil;
 import com.backend.melodyHub.component.S3Service;
 import com.backend.melodyHub.component.TokenValidationResult;
+import com.backend.melodyHub.dto.AddPostDTO;
 import com.backend.melodyHub.dto.PostDTO;
 import com.backend.melodyHub.dto.PostPageDTO;
 import com.backend.melodyHub.dto.PostPreviewDTO;
@@ -146,7 +147,7 @@ public class PostController {
 
     @Transactional
     @PostMapping("/addPost")
-    public ResponseEntity<?> addPost(@RequestBody PostDTO post, @RequestHeader String token) {
+    public ResponseEntity<?> addPost(@RequestBody AddPostDTO post, @RequestHeader String token) {
         TokenValidationResult result = jwtUtil.validateTokenFull(token);
         if (!result.isValid()) {
             return ResponseEntity.badRequest().body(result.getErrorMessage().orElse("Invalid token"));
