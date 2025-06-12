@@ -18,9 +18,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
+
 
 @RestController
 @Tag(name = "Comment Controller")
@@ -184,36 +184,46 @@ public class CommentController {
 
             List<Comment> allComments = commentRepository.getCommentsByPost(post);
 
-            List<Comment> postOwnerComments = new ArrayList<>();
-            List<Comment> currentUserComments = new ArrayList<>();
-            List<Comment> otherComments = new ArrayList<>();
+            // Group comments by replyToId
+            Map<Integer, List<Comment>> commentsByParentId = allComments.stream()
+                    .collect(Collectors.groupingBy(
+                            comment -> comment.getReplyTo() == null ? -1 : comment.getReplyTo().getId(),
+                            HashMap::new,
+                            Collectors.toList()
+                    ));
 
-            for (Comment comment : allComments) {
-                if (comment.getUser().getId().equals(postOwner.getId())) {
-                    postOwnerComments.add(comment);
-                } else if (comment.getUser().getId().equals(currentUser.getId())) {
-                    currentUserComments.add(comment);
-                } else {
-                    otherComments.add(comment);
-                }
-            }
+            // Build hierarchical structure for all comments
+            List<CommentDTO> sortedComments = buildCommentHierarchy(commentsByParentId, -1, allComments);
 
-            otherComments.sort((c1, c2) -> getLastReplyDate(c2).compareTo(getLastReplyDate(c1)));
-
-            List<Comment> sortedComments = new ArrayList<>();
-            sortedComments.addAll(postOwnerComments);
-            sortedComments.addAll(currentUserComments);
-            sortedComments.addAll(otherComments);
-
-            List<CommentDTO> resultList = sortedComments.stream()
-                    .map(comment -> CommentDTO.toCommentDTO(comment, comment.getUser().getLogin(), s3Service.generatePresignedPreviewUrl(comment.getUser().getS3Key())))
-                    .toList();
-
-            return ResponseEntity.ok(resultList);
+            return ResponseEntity.ok(sortedComments);
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
             return ResponseEntity.badRequest().body("Something went wrong");
         }
+    }
+
+    private List<CommentDTO> buildCommentHierarchy(Map<Integer, List<Comment>> commentsByParentId, Integer parentId, List<Comment> group) {
+        Integer effectiveParentId = (parentId == null) ? -1 : parentId;
+
+        // Get comments for the current parentId
+        List<Comment> comments = commentsByParentId.getOrDefault(effectiveParentId, Collections.emptyList());
+
+        // Avoid duplicate processing
+        Set<Integer> processedIds = new HashSet<>();
+
+        return comments.stream()
+                .filter(comment -> processedIds.add(comment.getId())) // Process each comment only once
+                .map(comment -> {
+                    CommentDTO dto = CommentDTO.toCommentDTO(
+                            comment,
+                            comment.getUser().getLogin(),
+                            s3Service.generatePresignedPreviewUrl(comment.getUser().getS3Key())
+                    );
+                    // Recursively build replies
+                    dto.setReplies(buildCommentHierarchy(commentsByParentId, comment.getId(), group));
+                    return dto;
+                })
+                .toList();
     }
 
     private LocalDateTime getLastReplyDate(Comment comment) {

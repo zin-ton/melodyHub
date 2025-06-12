@@ -6,6 +6,7 @@ import com.backend.melodyHub.model.User;
 import jakarta.annotation.Nullable;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 public class CommentDTO {
     @Nullable
@@ -19,6 +20,9 @@ public class CommentDTO {
     @Nullable
     private LocalDateTime dateTime;
     private String authorProfilePictureUrl;
+    @Nullable
+    private List<CommentDTO> replies; // New field for nested replies
+
 
     public static CommentDTO toCommentDTO(Comment comment, String userName, @Nullable String authorProfilePictureUrl) {
         CommentDTO commentDTO = new CommentDTO();
@@ -109,5 +113,13 @@ public class CommentDTO {
 
     public void setAuthorProfilePictureUrl(String authorProfilePictureUrl) {
         this.authorProfilePictureUrl = authorProfilePictureUrl;
+    }
+
+    public List<CommentDTO> getReplies() {
+        return replies;
+    }
+
+    public void setReplies(List<CommentDTO> replies) {
+        this.replies = replies;
     }
 }
