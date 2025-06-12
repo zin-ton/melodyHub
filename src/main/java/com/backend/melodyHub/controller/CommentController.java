@@ -165,7 +165,7 @@ public class CommentController {
     }
 
     @Transactional
-    @GetMapping("getSortedCommments")
+    @GetMapping("getSortedComments")
     public ResponseEntity<?> getSortedComments(@RequestHeader String token, @RequestParam Integer postId) {
         TokenValidationResult result = jwtUtil.validateTokenFull(token);
         if (!result.isValid())
@@ -184,15 +184,11 @@ public class CommentController {
 
             List<Comment> allComments = commentRepository.getCommentsByPost(post);
 
-            List<Comment> topLevelComments = allComments.stream()
-                    .filter(c -> c.getReplyTo() == null)
-                    .toList();
-
             List<Comment> postOwnerComments = new ArrayList<>();
             List<Comment> currentUserComments = new ArrayList<>();
             List<Comment> otherComments = new ArrayList<>();
 
-            for (Comment comment : topLevelComments) {
+            for (Comment comment : allComments) {
                 if (comment.getUser().getId().equals(postOwner.getId())) {
                     postOwnerComments.add(comment);
                 } else if (comment.getUser().getId().equals(currentUser.getId())) {

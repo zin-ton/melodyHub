@@ -41,7 +41,7 @@ public class PostController {
     }
 
     @DeleteMapping("/deletePost")
-    public ResponseEntity<?> deletePost(@RequestHeader String token, @RequestBody int postId) {
+    public ResponseEntity<?> deletePost(@RequestHeader String token, @RequestParam int postId) {
         TokenValidationResult result = jwtUtil.validateTokenFull(token);
         if (!result.isValid())
             return ResponseEntity.badRequest().body(result.getErrorMessage().orElse("Invalid token"));
