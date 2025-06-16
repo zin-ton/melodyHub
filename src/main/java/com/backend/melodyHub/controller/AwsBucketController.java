@@ -41,8 +41,8 @@ public class AwsBucketController {
         TokenValidationResult result = jwtUtil.validateTokenFull(token);
         if (!result.isValid())
             return ResponseEntity.badRequest().body(result.getErrorMessage().orElse("Invalid token"));
-        String key = "images/" + UUID.randomUUID() + filename;
-        String uploadUrl = s3Service.generateUploadUrl(key);
+        String key = UUID.randomUUID() + filename;
+        String uploadUrl = s3Service.generateUploadUrl("images/" + key);
         return ResponseEntity.ok(new UploadFileDTO(key, uploadUrl));
     }
 

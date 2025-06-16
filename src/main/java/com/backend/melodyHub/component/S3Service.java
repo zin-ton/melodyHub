@@ -43,6 +43,13 @@ public class S3Service {
         return generatePresignedUrl(key);
     }
 
+    public String generatePresignedImageUrl(String key) {
+        if (key != null && !key.trim().isEmpty()) {
+            key = "images/" + key;
+        }
+        return generatePresignedUrl(key);
+    }
+
     public String generatePresignedVideoUrl(String key) {
         if (key != null && !key.trim().isEmpty()) {
             key = "videos/" + key.replaceAll("\\.[^.]*$", ".mp4");

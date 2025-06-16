@@ -3,7 +3,10 @@ package com.backend.melodyHub.controller;
 import com.backend.melodyHub.component.JwtUtil;
 import com.backend.melodyHub.component.S3Service;
 import com.backend.melodyHub.component.TokenValidationResult;
-import com.backend.melodyHub.dto.*;
+import com.backend.melodyHub.dto.AddPostDTO;
+import com.backend.melodyHub.dto.EditPostDTO;
+import com.backend.melodyHub.dto.PostPageDTO;
+import com.backend.melodyHub.dto.PostPreviewDTO;
 import com.backend.melodyHub.model.*;
 import com.backend.melodyHub.repository.*;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -211,7 +214,7 @@ public class PostController {
                     if (!Objects.equals(postToEdit.getUser().getId(), user.get().getId())) {
                         return ResponseEntity.badRequest().body("You are not the owner of this post");
                     }
-                    if( post.getS3Key() != null) {
+                    if (post.getS3Key() != null) {
                         postToEdit.setS3Key(post.getS3Key());
                     }
                     if (post.getDescription() != null) {
@@ -223,7 +226,7 @@ public class PostController {
                     if (post.getLeadsheetKey() != null) {
                         postToEdit.setLeadsheetKey(post.getLeadsheetKey());
                     }
-                    if(post.getCategories() != null){
+                    if (post.getCategories() != null) {
                         postToCategoryRepository.deleteAll(postToEdit.getPostToCategories());
                         Set<PostToCategory> postToCategories = new HashSet<>();
                         for (Integer categoryId : post.getCategories()) {
@@ -252,6 +255,7 @@ public class PostController {
             return ResponseEntity.internalServerError().body("An error occurred while trying to edit the posts");
         }
     }
+
     @Transactional
     @GetMapping("/getPost")
     public ResponseEntity<?> getPost(@RequestHeader String token, @RequestParam Integer postId) {
@@ -265,7 +269,7 @@ public class PostController {
                 if (post.get().getLeadsheetKey() != null) {
                     leadsheetUrl = s3Service.generatePresignedLeadsheetUrl(post.get().getLeadsheetKey());
                 }
-                PostPageDTO returnPost = PostPageDTO.fromPost(post.get(), s3Service.generatePresignedPreviewUrl(post.get().getS3Key()), s3Service.generatePresignedVideoUrl(post.get().getS3Key()), leadsheetUrl, s3Service.generatePresignedPreviewUrl(post.get().getUser().getS3Key()));
+                PostPageDTO returnPost = PostPageDTO.fromPost(post.get(), s3Service.generatePresignedPreviewUrl(post.get().getS3Key()), s3Service.generatePresignedVideoUrl(post.get().getS3Key()), leadsheetUrl, s3Service.generatePresignedImageUrl(post.get().getUser().getS3Key()));
                 return ResponseEntity.ok(returnPost);
             }
             return ResponseEntity.badRequest().body("Post not found");
