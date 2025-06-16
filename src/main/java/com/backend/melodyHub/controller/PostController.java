@@ -82,7 +82,7 @@ public class PostController {
         }
 
         try {
-            List<Post> posts = postRepository.findAll();
+            List<Post> posts = new ArrayList<>(postRepository.findAll()); // Ensure the list is mutable
 
             // Filter by userId
             if (userId != null) {
@@ -91,7 +91,7 @@ public class PostController {
                     return ResponseEntity.badRequest().body("User not found");
                 }
                 posts = posts.stream()
-                        .filter(post -> post.getUser().getId().equals(userId))
+                        .filter(post -> post.getUser() != null && post.getUser().getId().equals(userId))
                         .toList();
             }
 
@@ -99,7 +99,9 @@ public class PostController {
             if (categoryIds != null && !categoryIds.isEmpty()) {
                 posts = posts.stream()
                         .filter(post -> {
-                            Set<Integer> postCategoryIds = post.getPostToCategories().stream()
+                            Set<Integer> postCategoryIds = Optional.ofNullable(post.getPostToCategories())
+                                    .orElse(Collections.emptySet())
+                                    .stream()
                                     .map(postToCategory -> postToCategory.getCategory().getId())
                                     .collect(Collectors.toSet());
                             return postCategoryIds.containsAll(categoryIds);
@@ -110,20 +112,25 @@ public class PostController {
             // Filter by name
             if (name != null && !name.isEmpty()) {
                 posts = posts.stream()
-                        .filter(post -> post.getName().toLowerCase().contains(name.toLowerCase()))
+                        .filter(post -> post.getName() != null && post.getName().toLowerCase().contains(name.toLowerCase()))
                         .toList();
             }
 
             // Sort posts
+            List<Post> mutablePosts = new ArrayList<>(posts); // Ensure the list is mutable before sorting
             if ("date".equalsIgnoreCase(sort)) {
-                posts.sort((p1, p2) -> p2.getDateTime().compareTo(p1.getDateTime()));
+                mutablePosts.sort((p1, p2) -> p2.getDateTime().compareTo(p1.getDateTime()));
             } else if ("likes".equalsIgnoreCase(sort)) {
                 LocalDateTime oneMonthAgo = LocalDateTime.now().minusMonths(1);
-                posts.sort((p1, p2) -> {
-                    long likes1 = p1.getLikes().stream()
+                mutablePosts.sort((p1, p2) -> {
+                    long likes1 = Optional.ofNullable(p1.getLikes())
+                            .orElse(Collections.emptyList())
+                            .stream()
                             .filter(like -> like.getLikeDate() != null && like.getLikeDate().isAfter(oneMonthAgo))
                             .count();
-                    long likes2 = p2.getLikes().stream()
+                    long likes2 = Optional.ofNullable(p2.getLikes())
+                            .orElse(Collections.emptyList())
+                            .stream()
                             .filter(like -> like.getLikeDate() != null && like.getLikeDate().isAfter(oneMonthAgo))
                             .count();
                     return Long.compare(likes2, likes1);
@@ -131,13 +138,13 @@ public class PostController {
             }
 
             // Convert to DTOs
-            List<PostPreviewDTO> resultPosts = posts.stream()
+            List<PostPreviewDTO> resultPosts = mutablePosts.stream()
                     .map(post -> PostPreviewDTO.fromPost(post, s3Service.generatePresignedPreviewUrl(post.getS3Key())))
                     .toList();
 
             return ResponseEntity.ok(resultPosts);
         } catch (Exception e) {
-            logger.error("Error while fetching posts: " + e.getMessage());
+            logger.error("Error while fetching posts: {}", e.getMessage(), e);
             return ResponseEntity.internalServerError().body("Something went wrong while fetching posts");
         }
     }
