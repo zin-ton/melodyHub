@@ -71,86 +71,7 @@ public class PostController {
         }
     }
 
-    @Transactional
-    @GetMapping("/getPosts")
-    public ResponseEntity<?> getPosts(
-            @RequestHeader String token,
-            @RequestParam(required = false) Integer userId,
-            @RequestParam(required = false) List<Integer> categoryIds,
-            @RequestParam(required = false) String sort,
-            @RequestParam(required = false) String name) {
-        TokenValidationResult result = jwtUtil.validateTokenFull(token);
-        if (!result.isValid()) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Invalid token");
-        }
 
-        try {
-            List<Post> posts = new ArrayList<>(postRepository.findAll()); // Ensure the list is mutable
-
-            // Filter by userId
-            if (userId != null) {
-                Optional<User> user = userRepository.findById(userId);
-                if (user.isEmpty()) {
-                    return ResponseEntity.badRequest().body("User not found");
-                }
-                posts = posts.stream()
-                        .filter(post -> post.getUser() != null && post.getUser().getId().equals(userId))
-                        .toList();
-            }
-
-            // Filter by categories
-            if (categoryIds != null && !categoryIds.isEmpty()) {
-                posts = posts.stream()
-                        .filter(post -> {
-                            Set<Integer> postCategoryIds = Optional.ofNullable(post.getPostToCategories())
-                                    .orElse(Collections.emptySet())
-                                    .stream()
-                                    .map(postToCategory -> postToCategory.getCategory().getId())
-                                    .collect(Collectors.toSet());
-                            return postCategoryIds.containsAll(categoryIds);
-                        })
-                        .toList();
-            }
-
-            // Filter by name
-            if (name != null && !name.isEmpty()) {
-                posts = posts.stream()
-                        .filter(post -> post.getName() != null && post.getName().toLowerCase().contains(name.toLowerCase()))
-                        .toList();
-            }
-
-            // Sort posts
-            List<Post> mutablePosts = new ArrayList<>(posts); // Ensure the list is mutable before sorting
-            if ("date".equalsIgnoreCase(sort)) {
-                mutablePosts.sort((p1, p2) -> p2.getDateTime().compareTo(p1.getDateTime()));
-            } else if ("likes".equalsIgnoreCase(sort)) {
-                LocalDateTime oneMonthAgo = LocalDateTime.now().minusMonths(1);
-                mutablePosts.sort((p1, p2) -> {
-                    long likes1 = Optional.ofNullable(p1.getLikes())
-                            .orElse(Collections.emptyList())
-                            .stream()
-                            .filter(like -> like.getLikeDate() != null && like.getLikeDate().isAfter(oneMonthAgo))
-                            .count();
-                    long likes2 = Optional.ofNullable(p2.getLikes())
-                            .orElse(Collections.emptyList())
-                            .stream()
-                            .filter(like -> like.getLikeDate() != null && like.getLikeDate().isAfter(oneMonthAgo))
-                            .count();
-                    return Long.compare(likes2, likes1);
-                });
-            }
-
-            // Convert to DTOs
-            List<PostPreviewDTO> resultPosts = mutablePosts.stream()
-                    .map(post -> PostPreviewDTO.fromPost(post, s3Service.generatePresignedPreviewUrl(post.getS3Key())))
-                    .toList();
-
-            return ResponseEntity.ok(resultPosts);
-        } catch (Exception e) {
-            logger.error("Error while fetching posts: {}", e.getMessage(), e);
-            return ResponseEntity.internalServerError().body("Something went wrong while fetching posts");
-        }
-    }
 
     @Transactional
     @PostMapping("/addPost")
@@ -375,6 +296,87 @@ public class PostController {
         } catch (Exception e) {
             logger.error(e.getMessage());
             return ResponseEntity.internalServerError().body("something went wrong");
+        }
+    }
+
+    @Transactional
+    @GetMapping("/getPosts")
+    public ResponseEntity<?> getPosts(
+            @RequestHeader String token,
+            @RequestParam(required = false) Integer userId,
+            @RequestParam(required = false) List<Integer> categoryIds,
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) String name) {
+        TokenValidationResult result = jwtUtil.validateTokenFull(token);
+        if (!result.isValid()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Invalid token");
+        }
+
+        try {
+            List<Post> posts = new ArrayList<>(postRepository.findAll()); // Ensure the list is mutable
+
+            // Filter by userId
+            if (userId != null) {
+                Optional<User> user = userRepository.findById(userId);
+                if (user.isEmpty()) {
+                    return ResponseEntity.badRequest().body("User not found");
+                }
+                posts = posts.stream()
+                        .filter(post -> post.getUser() != null && post.getUser().getId().equals(userId))
+                        .toList();
+            }
+
+            // Filter by categories
+            if (categoryIds != null && !categoryIds.isEmpty()) {
+                posts = posts.stream()
+                        .filter(post -> {
+                            Set<Integer> postCategoryIds = Optional.ofNullable(post.getPostToCategories())
+                                    .orElse(Collections.emptySet())
+                                    .stream()
+                                    .map(postToCategory -> postToCategory.getCategory().getId())
+                                    .collect(Collectors.toSet());
+                            return postCategoryIds.containsAll(categoryIds);
+                        })
+                        .toList();
+            }
+
+            // Filter by name
+            if (name != null && !name.isEmpty()) {
+                posts = posts.stream()
+                        .filter(post -> post.getName() != null && post.getName().toLowerCase().contains(name.toLowerCase()))
+                        .toList();
+            }
+
+            // Sort posts
+            List<Post> mutablePosts = new ArrayList<>(posts); // Ensure the list is mutable before sorting
+            if ("date".equalsIgnoreCase(sort)) {
+                mutablePosts.sort((p1, p2) -> p2.getDateTime().compareTo(p1.getDateTime()));
+            } else if ("likes".equalsIgnoreCase(sort)) {
+                LocalDateTime oneMonthAgo = LocalDateTime.now().minusMonths(1);
+                mutablePosts.sort((p1, p2) -> {
+                    long likes1 = Optional.ofNullable(p1.getLikes())
+                            .orElse(Collections.emptyList())
+                            .stream()
+                            .filter(like -> like.getLikeDate() != null && like.getLikeDate().isAfter(oneMonthAgo))
+                            .count();
+                    long likes2 = Optional.ofNullable(p2.getLikes())
+                            .orElse(Collections.emptyList())
+                            .stream()
+                            .filter(like -> like.getLikeDate() != null && like.getLikeDate().isAfter(oneMonthAgo))
+                            .count();
+                    return Long.compare(likes2, likes1);
+                });
+            }
+
+            // Convert to DTOs
+            List<PostPreviewDTO> resultPosts = mutablePosts.stream()
+                    .map(post -> PostPreviewDTO.fromPost(post, s3Service.generatePresignedPreviewUrl(post.getS3Key())))
+                    .toList();
+
+            return ResponseEntity.ok(resultPosts);
+        } catch (Exception e) {
+            logger.error("Error while fetching posts: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().body("Something went wrong while fetching posts");
         }
     }
 
