@@ -126,42 +126,40 @@ public class UserController {
     @GetMapping("getUserInfo")
     public ResponseEntity<?> getUserInfo(@RequestHeader String token) {
         TokenValidationResult result = jwtUtil.validateTokenFull(token);
-        if(!result.isValid())
+        if (!result.isValid())
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("invalid token");
-        try{
+        try {
             Optional<User> opt_user = userRepository.findByLogin(jwtUtil.extractUsername(token));
-            if(!opt_user.isPresent())
+            if (!opt_user.isPresent())
                 return ResponseEntity.notFound().build();
             User user = opt_user.get();
-            UserInfoDTO userInfo = new UserInfoDTO(user.getId(), user.getEmail(), user.getFirstName(), user.getLastName(), user.getLogin(), s3Service.generatePresignedPreviewUrl(user.getS3Key()));
+            UserInfoDTO userInfo = new UserInfoDTO(user.getId(), user.getEmail(), user.getFirstName(), user.getLastName(), user.getLogin(), s3Service.generatePresignedImageUrl(user.getS3Key()));
             return ResponseEntity.ok(userInfo);
-        }
-        catch (Exception e){
+        } catch (Exception e) {
             logger.error(e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Unexpected error occurred.");
         }
     }
 
     @PostMapping("updatePassword")
-    public ResponseEntity<?> updatePassword(@RequestHeader String token, @Valid @RequestBody UpdatePasswordDTO updatePasswordDTO){
+    public ResponseEntity<?> updatePassword(@RequestHeader String token, @Valid @RequestBody UpdatePasswordDTO updatePasswordDTO) {
         TokenValidationResult result = jwtUtil.validateTokenFull(token);
-        if(!result.isValid())
+        if (!result.isValid())
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("invalid token");
         String username = jwtUtil.extractUsername(token);
         try {
             Optional<User> opt_user = userRepository.findByLogin(username);
-            if(opt_user.isEmpty()) return ResponseEntity.notFound().build();
+            if (opt_user.isEmpty()) return ResponseEntity.notFound().build();
 
             User user = opt_user.get();
-            if(!PasswordHasher.checkPassword(updatePasswordDTO.getOldPassword(), user.getPassword())){
+            if (!PasswordHasher.checkPassword(updatePasswordDTO.getOldPassword(), user.getPassword())) {
                 return ResponseEntity.badRequest().body("Old password is incorrect");
             }
             String newPassword = updatePasswordDTO.getNewPassword();
             user.setPassword(PasswordHasher.hashPassword(newPassword));
             userRepository.save(user);
             return ResponseEntity.ok().build();
-        }
-            catch(Exception e){
+        } catch (Exception e) {
             logger.error(e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Unexpected error occurred.");
         }
@@ -169,19 +167,18 @@ public class UserController {
     }
 
     @GetMapping("getOtherUserInfo")
-    public ResponseEntity<?> getOtherUserInfo(@RequestHeader String token, @RequestParam String username){
+    public ResponseEntity<?> getOtherUserInfo(@RequestHeader String token, @RequestParam String username) {
         TokenValidationResult result = jwtUtil.validateTokenFull(token);
-        if(!result.isValid())
+        if (!result.isValid())
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("invalid token");
-        try{
+        try {
             Optional<User> opt_user = userRepository.findByLogin(username);
-            if(!opt_user.isPresent())
+            if (!opt_user.isPresent())
                 return ResponseEntity.notFound().build();
             User user = opt_user.get();
-            OtherUserInfoDTO userInfo = new OtherUserInfoDTO(user.getId(), user.getLogin(), s3Service.generatePresignedPreviewUrl(user.getS3Key()));
+            OtherUserInfoDTO userInfo = new OtherUserInfoDTO(user.getId(), user.getLogin(), s3Service.generatePresignedImageUrl(user.getS3Key()));
             return ResponseEntity.ok(userInfo);
-        }
-        catch (Exception e){
+        } catch (Exception e) {
             logger.error(e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Unexpected error occurred.");
         }
