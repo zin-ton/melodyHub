@@ -18,8 +18,9 @@ public class PostPageDTO {
     private final String name;
     private final String leadsheetUrl;
     private String authorProfileImageUrl;
+    private Integer authorId;
 
-    public PostPageDTO(Integer id, String previewUrl, String authorName, List<Integer> categories, String description, String postUrl, String name, String leadsheetUrl, String authorProfileImageUrl) {
+    public PostPageDTO(Integer id, String previewUrl, String authorName, List<Integer> categories, String description, String postUrl, String name, String leadsheetUrl, String authorProfileImageUrl, Integer authorId) {
         this.id = id;
         this.previewUrl = previewUrl;
         this.authorName = authorName;
@@ -29,6 +30,7 @@ public class PostPageDTO {
         this.name = name;
         this.leadsheetUrl = leadsheetUrl;
         this.authorProfileImageUrl = authorProfileImageUrl;
+        this.authorId = authorId;
     }
 
     public static PostPageDTO fromPost(Post post, String previewUrl, String postUrl, String leadsheetUrl, String authorProfileImageUrl) {
@@ -46,7 +48,8 @@ public class PostPageDTO {
                 postUrl,
                 post.getName(),
                 leadsheetUrl,
-                authorProfileImageUrl
+                authorProfileImageUrl,
+                post.getUser().getId()
         );
     }
 
@@ -92,5 +95,13 @@ public class PostPageDTO {
 
     public void setAuthorProfileImageUrl(String authorProfileImageUrl) {
         this.authorProfileImageUrl = authorProfileImageUrl;
+    }
+
+    public Integer getAuthorId() {
+        return authorId;
+    }
+
+    public void setAuthorId(Integer authorId) {
+        this.authorId = authorId;
     }
 }

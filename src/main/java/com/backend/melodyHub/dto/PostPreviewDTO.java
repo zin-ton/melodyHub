@@ -13,13 +13,15 @@ public class PostPreviewDTO {
     private final String name;
     private final String authorName;
     private List<Integer> categories;
+    private Integer authorId;
 
-    public PostPreviewDTO(Integer id, String previewUrl, String name, String authorName, List<Integer> categories) {
+    public PostPreviewDTO(Integer id, String previewUrl, String name, String authorName, List<Integer> categories, Integer authorId) {
         this.id = id;
         this.previewUrl = previewUrl;
         this.name = name;
         this.authorName = authorName;
         this.categories = categories;
+        this.authorId = authorId;
     }
 
     public static PostPreviewDTO fromPost(Post post, String previewUrl) {
@@ -33,7 +35,8 @@ public class PostPreviewDTO {
                 previewUrl,
                 post.getName(),
                 post.getUser().getLogin(),
-                categoryIds
+                categoryIds,
+                post.getUser().getId()
         );
     }
 
@@ -59,5 +62,13 @@ public class PostPreviewDTO {
 
     public void setCategories(List<Integer> categories) {
         this.categories = categories;
+    }
+
+    public Integer getAuthorId() {
+        return authorId;
+    }
+
+    public void setAuthorId(Integer authorId) {
+        this.authorId = authorId;
     }
 }
