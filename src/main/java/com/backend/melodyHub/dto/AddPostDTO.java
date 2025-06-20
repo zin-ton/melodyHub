@@ -38,6 +38,9 @@ public class AddPostDTO {
         return post;
     }
 
+    public AddPostDTO() {
+    }
+
     public static PostDTO fromPost(Post post) {
         List<Integer> categoryIds = post.getPostToCategories().stream()
                 .map(PostToCategory::getCategory)

@@ -46,6 +46,9 @@ public class CommentController {
         if (!result.isValid())
             return ResponseEntity.badRequest().body(result.getErrorMessage().orElse("Invalid token"));
         String username = jwtUtil.extractUsername(token);
+        if(comment.getContent() == null || comment.getContent().trim().equals("")){
+            return ResponseEntity.badRequest().body("Comment content cannot be empty");
+        }
         try {
             Optional<User> opt_user = userRepository.findByLogin(username);
             Optional<Post> opt_post = postRepository.findById(comment.getPostId());
@@ -96,6 +99,9 @@ public class CommentController {
         if (!result.isValid())
             return ResponseEntity.badRequest().body(result.getErrorMessage().orElse("Invalid token"));
         String username = jwtUtil.extractUsername(token);
+        if(comment.getContent() == null || comment.getContent().trim().equals("")){
+            return ResponseEntity.badRequest().body("Comment content cannot be empty");
+        }
         try {
             Optional<User> opt_user = userRepository.findByLogin(username);
             Optional<Comment> opt_comment = commentRepository.findById(comment.getId());

@@ -267,7 +267,12 @@ public class PostController {
             List<Saved> savedPosts = savedRepository.findByUser(user);
             List<PostPreviewDTO> postsDTO = new ArrayList<>();
             for (Saved post : savedPosts) {
-                postsDTO.add(PostPreviewDTO.fromPost(post.getPost(), s3Service.generatePresignedPreviewUrl(post.getPost().getS3Key())));
+                Post savedPost = post.getPost();
+                if (savedPost.getUser() == null) {
+                    logger.error("Post with ID {} has a null user", savedPost.getId());
+                    continue; // Skip posts with null users
+                }
+                postsDTO.add(PostPreviewDTO.fromPost(savedPost, s3Service.generatePresignedPreviewUrl(savedPost.getS3Key())));
             }
             return ResponseEntity.ok(postsDTO);
         } catch (Exception e) {
@@ -275,7 +280,6 @@ public class PostController {
             return ResponseEntity.internalServerError().body("something went wrong");
         }
     }
-
     @Transactional
     @GetMapping("checkFavoritePost")
     public ResponseEntity<?> checkFavoritePost(@RequestHeader String token, @RequestParam Integer postId) {
