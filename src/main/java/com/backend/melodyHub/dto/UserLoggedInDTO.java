@@ -1,5 +1,7 @@
 package com.backend.melodyHub.dto;
 
+import java.util.Objects;
+
 public class UserLoggedInDTO {
     private String token;
     private String username;
@@ -23,5 +25,18 @@ public class UserLoggedInDTO {
 
     public void setUsername(String username) {
         this.username = username;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof UserLoggedInDTO that)) return false;
+        return Objects.equals(token, that.token) &&
+                Objects.equals(username, that.username);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(token, username);
     }
 }
