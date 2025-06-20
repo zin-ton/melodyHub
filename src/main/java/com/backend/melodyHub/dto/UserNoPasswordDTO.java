@@ -4,8 +4,9 @@ import com.backend.melodyHub.model.User;
 import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
+
+import java.util.Objects;
 
 public class UserNoPasswordDTO {
     @Nullable
@@ -78,4 +79,22 @@ public class UserNoPasswordDTO {
     public void setLogin(String login) {
         this.login = login;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        UserNoPasswordDTO that = (UserNoPasswordDTO) o;
+        return Objects.equals(id, that.id) &&
+                Objects.equals(email, that.email) &&
+                Objects.equals(firstName, that.firstName) &&
+                Objects.equals(lastName, that.lastName) &&
+                Objects.equals(login, that.login);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, email, firstName, lastName, login);
+    }
+
 }

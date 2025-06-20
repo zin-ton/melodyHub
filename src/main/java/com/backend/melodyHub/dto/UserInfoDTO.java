@@ -1,5 +1,7 @@
 package com.backend.melodyHub.dto;
 
+import java.util.Objects;
+
 public class UserInfoDTO {
     private Integer id;
     private String email;
@@ -63,6 +65,24 @@ public class UserInfoDTO {
 
     public void setUrl(String url) {
         this.url = url;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        UserInfoDTO that = (UserInfoDTO) o;
+        return Objects.equals(id, that.id) &&
+                Objects.equals(email, that.email) &&
+                Objects.equals(firstName, that.firstName) &&
+                Objects.equals(lastName, that.lastName) &&
+                Objects.equals(login, that.login) &&
+                Objects.equals(url, that.url);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, email, firstName, lastName, login, url);
     }
 
 }
