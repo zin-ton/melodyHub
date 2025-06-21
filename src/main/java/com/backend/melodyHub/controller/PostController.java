@@ -125,52 +125,51 @@ public class PostController {
         String username = jwtUtil.extractUsername(token);
         try {
             Optional<User> user = userRepository.findByLogin(username);
-            if (user.isPresent()) {
-                Optional<Post> postFromDb = postRepository.findById(post.getId());
-                if (postFromDb.isPresent()) {
-                    Post postToEdit = postFromDb.get();
-                    if (!Objects.equals(postToEdit.getUser().getId(), user.get().getId())) {
-                        return ResponseEntity.badRequest().body("You are not the owner of this post");
-                    }
-                    if (post.getS3Key() != null) {
-                        postToEdit.setS3Key(post.getS3Key());
-                    }
-                    if (post.getDescription() != null) {
-                        postToEdit.setDescription(post.getDescription());
-                    }
-                    if (post.getName() != null) {
-                        postToEdit.setName(post.getName());
-                    }
-                    if (post.getLeadsheetKey() != null) {
-                        postToEdit.setLeadsheetKey(post.getLeadsheetKey());
-                    }
-                    if (post.getCategories() != null) {
-                        postToCategoryRepository.deleteAll(postToEdit.getPostToCategories());
-                        Set<PostToCategory> postToCategories = new HashSet<>();
-                        for (Integer categoryId : post.getCategories()) {
-                            Optional<Category> category = categoryRepository.findById(categoryId);
-                            if (category.isEmpty()) {
-                                return ResponseEntity.badRequest().body("Category with id " + categoryId + " does not exist");
-                            }
-                            PostToCategory postToCategory = new PostToCategory();
-                            postToCategory.setPost(postToEdit);
-                            postToCategory.setCategory(category.get());
-                            postToCategories.add(postToCategory);
-                        }
-                        postToCategoryRepository.saveAll(postToCategories);
-                    }
-                    postToEdit.setDateTime(LocalDateTime.now());
-                    postRepository.save(postToEdit);
-                    return ResponseEntity.ok("Post edited successfully");
-                } else {
-                    return ResponseEntity.badRequest().body("Post not found");
-                }
-            } else {
+            if (user.isEmpty()) {
                 return ResponseEntity.badRequest().body("User not found");
             }
+
+            Optional<Post> postFromDb = postRepository.findById(post.getId());
+            if (postFromDb.isEmpty()) {
+                return ResponseEntity.badRequest().body("Post not found");
+            }
+
+            Post postToEdit = postFromDb.get();
+            if (!Objects.equals(postToEdit.getUser().getId(), user.get().getId())) {
+                return ResponseEntity.badRequest().body("You are not the owner of this post");
+            }
+
+
+            if (post.getS3Key() != null) postToEdit.setS3Key(post.getS3Key());
+            if (post.getDescription() != null) postToEdit.setDescription(post.getDescription());
+            if (post.getName() != null) postToEdit.setName(post.getName());
+            if (post.getLeadsheetKey() != null) postToEdit.setLeadsheetKey(post.getLeadsheetKey());
+
+            if (post.getCategories() != null) {
+
+                postToCategoryRepository.deleteByPost(postToEdit);
+
+                Set<PostToCategory> postToCategories = new HashSet<>();
+                for (Integer categoryId : post.getCategories()) {
+                    Optional<Category> category = categoryRepository.findById(categoryId);
+                    if (category.isEmpty()) {
+                        return ResponseEntity.badRequest().body("Category with id " + categoryId + " does not exist");
+                    }
+                    PostToCategory postToCategory = new PostToCategory();
+                    postToCategory.setPost(postToEdit);
+                    postToCategory.setCategory(category.get());
+                    postToCategories.add(postToCategory);
+                }
+                postToCategoryRepository.saveAll(postToCategories);
+            }
+
+            postToEdit.setDateTime(LocalDateTime.now());
+            postRepository.save(postToEdit);
+
+            return ResponseEntity.ok("Post edited successfully");
         } catch (Exception e) {
-            logger.error(e.getMessage());
-            return ResponseEntity.internalServerError().body("An error occurred while trying to edit the posts");
+            logger.error("Error occurred while editing post: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().body("An error occurred while trying to edit the post");
         }
     }
 
