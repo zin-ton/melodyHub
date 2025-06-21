@@ -88,7 +88,6 @@ public class PostController {
                 return ResponseEntity.badRequest().body("User not found");
             }
 
-            // Validate categories
             Set<PostToCategory> postToCategories = new HashSet<>();
             for (Integer categoryId : post.getCategories()) {
                 Optional<Category> category = categoryRepository.findById(categoryId);
@@ -100,13 +99,11 @@ public class PostController {
                 postToCategories.add(postToCategory);
             }
 
-            // Save the post
             Post newPost = post.toPost(user.get());
             newPost.setDateTime(LocalDateTime.now());
             newPost.setS3Key(post.getS3Key());
             newPost = postRepository.save(newPost);
 
-            // Associate categories
             for (PostToCategory postToCategory : postToCategories) {
                 postToCategory.setPost(newPost);
             }
@@ -270,7 +267,7 @@ public class PostController {
                 Post savedPost = post.getPost();
                 if (savedPost.getUser() == null) {
                     logger.error("Post with ID {} has a null user", savedPost.getId());
-                    continue; // Skip posts with null users
+                    continue;
                 }
                 postsDTO.add(PostPreviewDTO.fromPost(savedPost, s3Service.generatePresignedPreviewUrl(savedPost.getS3Key())));
             }
@@ -317,9 +314,7 @@ public class PostController {
         }
 
         try {
-            List<Post> posts = new ArrayList<>(postRepository.findAll()); // Ensure the list is mutable
-
-            // Filter by userId
+            List<Post> posts = new ArrayList<>(postRepository.findAll());
             if (userId != null) {
                 Optional<User> user = userRepository.findById(userId);
                 if (user.isEmpty()) {
@@ -330,7 +325,6 @@ public class PostController {
                         .toList();
             }
 
-            // Filter by categories
             if (categoryIds != null && !categoryIds.isEmpty()) {
                 posts = posts.stream()
                         .filter(post -> {
@@ -344,15 +338,13 @@ public class PostController {
                         .toList();
             }
 
-            // Filter by name
             if (name != null && !name.isEmpty()) {
                 posts = posts.stream()
                         .filter(post -> post.getName() != null && post.getName().toLowerCase().contains(name.toLowerCase()))
                         .toList();
             }
 
-            // Sort posts
-            List<Post> mutablePosts = new ArrayList<>(posts); // Ensure the list is mutable before sorting
+            List<Post> mutablePosts = new ArrayList<>(posts);
             if ("date".equalsIgnoreCase(sort)) {
                 mutablePosts.sort((p1, p2) -> p2.getDateTime().compareTo(p1.getDateTime()));
             } else if ("likes".equalsIgnoreCase(sort)) {
@@ -372,7 +364,6 @@ public class PostController {
                 });
             }
 
-            // Convert to DTOs
             List<PostPreviewDTO> resultPosts = mutablePosts.stream()
                     .map(post -> PostPreviewDTO.fromPost(post, s3Service.generatePresignedPreviewUrl(post.getS3Key())))
                     .toList();

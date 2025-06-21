@@ -188,8 +188,6 @@ public class CommentController {
             User postOwner = post.getUser();
 
             List<Comment> allComments = commentRepository.getCommentsByPost(post);
-
-            // Group comments by replyToId
             Map<Integer, List<Comment>> commentsByParentId = allComments.stream()
                     .collect(Collectors.groupingBy(
                             comment -> comment.getReplyTo() == null ? -1 : comment.getReplyTo().getId(),
@@ -197,7 +195,6 @@ public class CommentController {
                             Collectors.toList()
                     ));
 
-            // Build hierarchical structure for all comments
             List<CommentDTO> sortedComments = buildCommentHierarchy(commentsByParentId, -1, allComments);
 
             return ResponseEntity.ok(sortedComments);
@@ -210,21 +207,18 @@ public class CommentController {
     private List<CommentDTO> buildCommentHierarchy(Map<Integer, List<Comment>> commentsByParentId, Integer parentId, List<Comment> group) {
         Integer effectiveParentId = (parentId == null) ? -1 : parentId;
 
-        // Get comments for the current parentId
         List<Comment> comments = commentsByParentId.getOrDefault(effectiveParentId, Collections.emptyList());
 
-        // Avoid duplicate processing
         Set<Integer> processedIds = new HashSet<>();
 
         return comments.stream()
-                .filter(comment -> processedIds.add(comment.getId())) // Process each comment only once
+                .filter(comment -> processedIds.add(comment.getId()))
                 .map(comment -> {
                     CommentDTO dto = CommentDTO.toCommentDTO(
                             comment,
                             comment.getUser().getLogin(),
                             s3Service.generatePresignedImageUrl(comment.getUser().getS3Key())
                     );
-                    // Recursively build replies
                     dto.setReplies(buildCommentHierarchy(commentsByParentId, comment.getId(), group));
                     return dto;
                 })

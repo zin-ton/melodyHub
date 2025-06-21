@@ -18,7 +18,6 @@ public class PostToCategory {
     @JoinColumn(name = "category_id", nullable = false)
     private Category category;
 
-    // Getters and Setters
     public Long getId() {
         return id;
     }

@@ -61,7 +61,6 @@ public class PostDTO {
         );
     }
 
-    // Getters and Setters
     public Integer getId() {
         return id;
     }

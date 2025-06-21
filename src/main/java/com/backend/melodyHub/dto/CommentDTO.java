@@ -21,8 +21,7 @@ public class CommentDTO {
     private LocalDateTime dateTime;
     private String authorProfilePictureUrl;
     @Nullable
-    private List<CommentDTO> replies; // New field for nested replies
-
+    private List<CommentDTO> replies;
 
     public static CommentDTO toCommentDTO(Comment comment, String userName, @Nullable String authorProfilePictureUrl) {
         CommentDTO commentDTO = new CommentDTO();
