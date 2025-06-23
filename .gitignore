@@ -82,6 +82,7 @@ cmake-build-*/
 .idea/**/mongoSettings.xml
 # IntelliJ
 out/
+.env
 
 # mpeltonen/sbt-idea plugin
 .idea_modules/
